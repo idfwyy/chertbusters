@@ -8,6 +8,9 @@
 No app. No download. Just pick up.</p>
 
 <p align="center">Built at HackUTA 2026 for the Chert <i>Best Use of FaceTime</i> challenge.</p>
+<p align="center">
+  <a href="https://idfwyy.github.io/chertbusters/"><b>🌐 Read the story site</b></a>
+</p>
 
 ---
 
