@@ -1,10 +1,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dead Line</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Special+Elite&display=swap">
+<link rel="icon" href="data:,">
+<title>Chertbusters</title>
 <style>
+@font-face{font-family:"IM Fell English SC";src:url("./vendor/fonts/im-fell-english-sc-latin-400-normal.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Special Elite";src:url("./vendor/fonts/special-elite-latin-400-normal.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
 /* Screen share stage: fixed 1280x720 scaled to fit (split view per player). Agent camera: 300x400 Chert tile. */
 :root{
   --bg:#060508; --ink:#efe7d8; --dim:#9a9184; --spark:#f2873a; --blood:#d0503a; --ecto:#b9d8e6;
@@ -139,6 +139,49 @@ body.view-call #caption{left:120px;right:120px;bottom:22px;font-size:26px;line-h
 .heard::before{content:"Heard: ";color:var(--dim)}
 #callCap b{color:var(--spark);font-weight:400;margin-right:8px}
 #callCap.mabel b{color:var(--ecto)}
+/* The call view is watched through FaceTime, often on a phone. Bigger type, fewer pixels of noise. */
+body.view-call #grain{display:none}
+body.view-call .brand{font-size:38px}
+body.view-call #top .round{font-size:17px}
+body.view-call #timer{font-size:18px;min-width:180px}
+body.view-call #timer.danger{color:#ff5a4a;animation:timerPulse .8s infinite}
+@keyframes timerPulse{50%{opacity:.45}}
+body.view-call #objs span{font-size:15px;padding:6px 9px}
+body.view-call .mapw{font-size:11px}
+body.view-call .map{grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,14px)}
+body.view-call .map div{font-size:10px;line-height:12px}
+body.view-call .sig-wrap{font-size:11px}
+body.view-call .maps{display:none}
+body.view-call .half .tag{font-size:23px;padding:6px 14px;top:14px;left:16px}
+body.view-call .where{font-size:42px;right:20px;top:10px}
+body.view-call .where small{font-size:15px}
+body.view-call .items{top:58px}
+body.view-call .items span{font-size:16px;padding:4px 9px}
+body.view-call .opts{left:50%;right:auto;transform:translateX(-50%);width:min(600px,95%);display:grid;grid-template-columns:1fr 1fr;gap:10px;bottom:18px}
+body.view-call .opt{font-size:21px;padding:11px 13px;justify-content:flex-start}
+body.view-call .opt small{font-size:13px}
+body.view-call .opt .arr{font-size:22px}
+body.view-call .card{width:min(560px,92%);padding:22px 26px;top:42%}
+body.view-call .card h3{font-size:50px}
+body.view-call .card p{font-size:23px}
+body.view-call .card small{font-size:16px}
+body.view-call .card .act{font-size:20px;padding:12px 20px}
+body.view-call .toast{font-size:20px;max-width:560px;bottom:150px;padding:13px 17px}
+body.view-call .toast b{font-size:15px}
+body.view-call .toast em{font-size:14px}
+body.view-call .banner h3{font-size:64px}
+body.view-call .banner p{font-size:23px}
+body.view-call #narr{font-size:44px;top:130px}
+body.view-call .dead small{font-size:16px}
+body.view-call #callCap{font-size:21px;top:84px;max-width:1100px}
+body.view-call .half + .half{border-left:3px solid #000}
+.opt.target{outline:3px solid var(--spark);outline-offset:2px;background:rgba(242,135,58,.22)}
+.handchip{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);display:none;align-items:center;gap:10px;padding:8px 14px;border-radius:999px;background:rgba(8,6,10,.88);border:1px solid var(--line);font-size:18px;z-index:6;white-space:nowrap}
+.handchip.on{display:flex}
+body.view-call .handchip{top:auto;bottom:250px}
+.handchip b{color:var(--spark);font-weight:400}
+.handchip i{display:block;height:5px;width:70px;border-radius:3px;background:rgba(239,231,216,.18);overflow:hidden}
+.handchip i em{display:block;height:100%;width:0;background:var(--spark);transition:width .08s linear}
 #switching{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;background:#08080a}
 #switching canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.55;image-rendering:pixelated}
 #switching span{position:relative;font-size:26px;letter-spacing:.12em;text-transform:uppercase;padding:10px 18px;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:4px}
@@ -149,7 +192,7 @@ body.view-call #caption{left:120px;right:120px;bottom:22px;font-size:26px;line-h
   <div class="frame" id="screenFrame"><span class="label">Screen share</span>
     <div id="screen">
       <div id="top">
-        <span class="brand">Dead Line</span>
+        <span class="brand">Chertbusters</span>
         <span class="round" id="round">Round 1</span>
         <div id="timer"><span id="timerText">&nbsp;</span><i id="timerBar"></i></div>
         <div id="objs"><span data-o="key">Mabel&rsquo;s key</span><span data-o="room">Red door</span><span data-o="stone">Strike the stone</span></div>
@@ -186,17 +229,18 @@ body.view-call #caption{left:120px;right:120px;bottom:22px;font-size:26px;line-h
 
 <div id="menu" class="overlay">
   <div class="menu">
-    <h1>Dead Line</h1>
+    <h1>Chertbusters</h1>
     <p class="tag2">Mabel stole Chert&rsquo;s spark stone. Get it back before she disconnects you.</p>
     <p>Two floors, eighteen rooms. Search for Mabel&rsquo;s key, find the sealed room upstairs, and strike the stone first.<br>
-      Player 1: <kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&rarr;</kbd><kbd>&darr;</kbd> doors, <kbd>,</kbd> stairs, <kbd>.</kbd> search, <kbd>Space</kbd> action<br>
-      Player 2: <kbd>A</kbd><kbd>W</kbd><kbd>D</kbd><kbd>S</kbd> doors, <kbd>Q</kbd> stairs, <kbd>R</kbd> search, <kbd>E</kbd> action &nbsp; or click</p>
+      Batman: <kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&rarr;</kbd><kbd>&darr;</kbd> doors, <kbd>,</kbd> stairs, <kbd>.</kbd> search, <kbd>Space</kbd> action<br>
+      Spider-Man: <kbd>A</kbd><kbd>W</kbd><kbd>D</kbd><kbd>S</kbd> doors, <kbd>Q</kbd> stairs, <kbd>R</kbd> search, <kbd>E</kbd> action &nbsp; or click</p>
     <div class="actions"><button class="btn primary" id="p1" type="button">1 player</button><button class="btn" id="p2" type="button">2 players</button></div>
   </div>
 </div>
 
 <script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import * as THREE from './vendor/three.module.js';
+import { classifyHand, GESTURE_LABELS } from './gestures.js';
 
 /* ================= config ================= */
 const params = new URLSearchParams(location.search);
@@ -205,6 +249,10 @@ const CHOOSE_SECS = +(params.get('choose') || 20);
 const VIEW = params.get('view') || 'both';
 const DEBUG = params.has('debug');
 const CALL = VIEW === 'call';
+const MIRROR = params.has('mirror');
+const NAMES = ['Batman', 'Spider-Man'];
+const HAND_HOLD = +(params.get('handhold') || 450);
+const GHOST_GRACE = 45000;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 document.body.classList.add('view-' + VIEW);
 const PCOL = ['#f2b45a', '#8fc7ff'];
@@ -266,7 +314,7 @@ function buildHouse(){
   pick(spots.filter(s => s.room === keyRoom)).content = 'key';
   const rest = shuffle(spots.filter(s => s.content === 'nothing' && s.room !== stone && s.room !== 'foyer'));
   (FULL ? ['fuse', 'fuse', 'note', 'note', 'note', 'scare', 'scare', 'scare'] : ['fuse', 'note', 'note', 'scare', 'scare']).forEach((c, i) => rest[i].content = c);
-  const phones = shuffle(ROOMS.map(r => r.id).filter(id => id !== 'foyer' && id !== stone && id !== keyRoom && (FULL || R[id].f === 0))).slice(0, FULL ? 3 : 2);
+  const phones = shuffle(ROOMS.map(r => r.id).filter(id => id !== 'foyer' && id !== stone && id !== keyRoom && (FULL || R[id].f === 0))).slice(0, 2);
   const lockable = edges.filter(e => !e.sealed && e.a !== 'foyer' && e.b !== 'foyer');
   for (let tries = 0; tries < (FULL ? 20 : 0); tries++){ const e = pick(lockable); e.locked = true; if (keyRoom in bfsNoLocks('foyer', stone)) break; e.locked = false; }
   const dist = bfs('foyer');
@@ -286,7 +334,7 @@ const listeners = [];
 function emit(type, data = {}){ const ev = { type, round:game ? game.round : 0, ...data }; listeners.forEach(f => { try { f(ev); } catch (e) {} }); console.log('[deadline]', JSON.stringify(ev)); }
 
 /* ================= players and options ================= */
-function makePlayer(i){ return { id:i, name:'Player ' + (i + 1), room:'foyer', prev:'foyer', dir:0, alive:true, pick:null, key:false, fuse:false, challenge:null, anim:null, yaw:0, pitch:-.04, look:null, lookPitch:-.04, pos:null, seen:new Set(['foyer']), half:null, ghostHere:false, cam:null, spot:null }; }
+function makePlayer(i){ return { id:i, name:NAMES[i] || 'Player ' + (i + 1), room:'foyer', prev:'foyer', dir:0, alive:true, pick:null, key:false, fuse:false, challenge:null, anim:null, yaw:0, pitch:-.04, look:null, lookPitch:-.04, pos:null, seen:new Set(['foyer']), half:null, ghostHere:false, cam:null, spot:null, hints:{ key:0, stone:0 }, stuckAt:performance.now(), hand:null, handPreview:null }; }
 function optionsFor(p){
   const doors = [], other = [];
   for (const n of neighbors(p.room)){
@@ -311,7 +359,7 @@ const CH = {
   smile: { secs:7,  voice:['mabel', 'Why so serious, caller? Go on. Laugh for me.'], title:'Smile for the operator', body:'Mabel is trying to make you laugh. Don’t make a sound.',  failOn:['smile','dir','act'], passOn:[], timeoutPass:true,  danger:true },
   light: { secs:12, voice:['mabel', 'Lights out, dear. Find a light, or stay in the dark with me.'], title:'Blackout',               body:'Turn on a real light in your room. Now.',       failOn:[], passOn:['light','act'], timeoutPass:false, danger:true, dark:true },
   metal: { secs:10, voice:['chert', 'It’s padlocked! Hold up something metal, like your keys.'], title:'Padlocked',              body:'Show Mabel something metal to break it.',       failOn:[], passOn:['metal','act'], timeoutPass:false },
-  phone: { secs:9,  voice:['chert', 'The old phone is ringing! Pick it up. Say hello!'], title:'Riiing…',             body:'The old phone is ringing. Say HELLO.',          failOn:[], passOn:['hello','act'], timeoutPass:false },
+  ward:  { secs:9,  voice:['mabel', 'Hold out your hand, dear. Push me back.'], title:'She’s reaching for you', body:'Hold your palm up to the camera.', failOn:[], passOn:['palm','act'], timeoutPass:false, danger:true },
   strike:{ secs:10, voice:['chert', 'That’s my stone! Say strike it!'], title:'The spark stone!',       body:'Say STRIKE IT.',                                failOn:[], passOn:['strike','act'], timeoutPass:true, good:true },
 };
 // The card shows at once, the line is spoken, and only then does the countdown start (so players hear it first).
@@ -321,7 +369,7 @@ function challenge(p, type){
     const spec = CH[type]; let done = false, tm = 0;
     const finish = ok => { if (done) return; done = true; clearTimeout(tm); p.challenge = null; hideCard(p); emit('challenge_end', { player:p.id, challenge:type, passed:ok }); resolve(ok); };
     p.challenge = { type, spec, armed:false, start:performance.now() + 1e9, dur:spec.secs * 1000 / SPEED, finish };
-    showCard(p, spec.title, spec.body, spec.danger ? 'danger' : spec.good ? 'good' : '', spec.passOn.length > 0);
+    showCard(p, spec.title, spec.body, spec.danger ? 'danger' : spec.good ? 'good' : '', spec.passOn.length > 0 && !CALL);
     if (type === 'light' && p.fuse){ p.fuse = false; renderPlayer(p); setTimeout(() => { toast(p, 'Chert', 'Your fuse kicks in. Lights back on.'); finish(true); }, 1400 / SPEED); return; }
     const arm = () => {
       if (done) return;
@@ -366,7 +414,7 @@ function command(player, text){
   const p = game && game.players[player]; if (!p) return 'ignored';
   const t = String(text || '').toLowerCase();
   if (/\bstrike\b/.test(t)) return input(p, 'strike');
-  if (/\b(hello|hi|answer)\b/.test(t)) return input(p, 'hello');
+  if (p.challenge && /\b(palm|ward|push|stop her)\b/.test(t)) return input(p, 'palm');
   if (p.challenge && /\b(light|lights|lamp)\b/.test(t)) return input(p, 'light');
   if (p.challenge && /\b(key|keys|metal|coin|spoon)\b/.test(t)) return input(p, 'metal');
   if (/\b(upstairs|downstairs|stairs|staircase|climb|up|down)\b/.test(t)) return input(p, 'stairs');
@@ -388,8 +436,10 @@ async function start(n, opts = {}){
   rand = params.get('seed') ? seeded(+params.get('seed')) : Math.random;
   const setup = buildHouse();
   game = { ...setup, round:0, phase:'intro', signal:MAXSIG, players:[], over:false, keyFound:false, sealedSeen:false, phoneUsed:{}, winner:null,
+    startedAt:performance.now(), glimpses:0,
     clockTotal:(opts.timeLeftMs || +(params.get('time') || 270) * 1000) / SPEED, clockEnd:0, warned:{} };
   game.clockEnd = performance.now() + game.clockTotal;
+  timerEl.classList.remove('danger');
   if (params.get('ghost') && R[params.get('ghost')]) game.ghost = params.get('ghost');
   for (let i = 0; i < n; i++) game.players.push(makePlayer(i));
   buildWorld(); buildHalves(); setupCameras();
@@ -408,14 +458,13 @@ async function start(n, opts = {}){
         await say('chert', 'Oh thank goodness, you picked up. It’s me, Chert.'); alive(t);
         await say('chert', 'Mabel, the old operator ghost, stole my spark stone and sealed it in a room upstairs. I can barely keep this call alive.'); alive(t);
       }
-      if (CALL){ await say('chert', 'Search the furniture for her brass key, then find the red door upstairs. Hurry, this line won’t last five minutes.'); alive(t); }
+      if (CALL){ await say('chert', 'Search the furniture for her brass key, then find the red door upstairs. Hurry, this line is dying.'); alive(t); }
       else {
         await say('chert', 'First, find her brass key. It’s hidden in the furniture somewhere, so search things.'); alive(t);
         await say('chert', 'Then find the room with the red glowing door, unlock it, and strike my stone. Go!'); alive(t);
       }
       missionEl.hidden = true;
     }
-    game.clockEnd = Math.max(game.clockEnd, performance.now() + 60000 / SPEED);
     if (CALL && !hostEl.hidden){ await switchScreen(false); alive(t); }
     narr('Welcome to Hollow Line Manor. Please hold…', 2400); await wait(1800); alive(t);
     while (!game.over){
@@ -429,13 +478,10 @@ async function start(n, opts = {}){
 async function choosePhase(t){
   game.phase = 'choose';
   game.players.forEach(p => { p.pick = null; p.look = null; p.lookPitch = -.04; renderOpts(p); });
-  if (game.round === 1) say('chert', 'Your move. Pick a door, the stairs, or something to search.');
   const total = CHOOSE_SECS * 1000 / SPEED, end = performance.now() + total;
-  let nudged = false;
   while (performance.now() < end){
     alive(t);
     const left = (end - performance.now()) / total;
-    if (!nudged && left < .3){ nudged = true; const slow = game.players.filter(p => p.alive && !p.pick); if (slow.length) say('chert', `${slow.map(p => ['Orange', 'Blue'][p.id]).join(' and ')}, which way?`); }
     timerText.textContent = `Choose · ${Math.ceil(left * CHOOSE_SECS)}s`; timerBar.style.width = (left * 100) + '%';
     if (game.players.filter(p => p.alive).every(p => p.pick)){ await wait(1500); break; }
     await new Promise(r => setTimeout(r, 100));
@@ -460,7 +506,7 @@ async function revealPhase(t){
       o.door.locked = false; updateLocks(); say('chert', 'Snap! It broke.');
     }
     await travel(p, o); alive(t);
-    if (game.ghost === p.room){ await encounter(p, t); alive(t); continue; }
+    if (game.ghost === p.room && performance.now() - game.startedAt >= GHOST_GRACE){ await encounter(p, t); alive(t); continue; }
     await resolveRoom(p, t); alive(t);
     await wait(900);
   }
@@ -480,11 +526,8 @@ async function resolveRoom(p, t){
   if (game.phones.includes(id) && !game.phoneUsed[id]){
     game.phoneUsed[id] = true;
     ring(); if (world.phones[id]) world.phones[id].ring = performance.now() + 6000 / SPEED;
-    const ok = await challenge(p, 'phone'); alive(t);
-    if (world.phones[id]) world.phones[id].ring = 0;
-    if (!ok){ toast(p, 'Chert', 'It stopped ringing.'); return; }
-    const r = rand();
-    if (game.clues.length && r < .75){ const clue = game.clues.shift(); sendClue(p, clue, 'Mabel, on the old line'); await say('mabel', `Looking for something, dear? ${clue}`); alive(t); }
+    await wait(1200); if (world.phones[id]) world.phones[id].ring = 0;
+    if (game.clues.length && rand() < .75){ const clue = game.clues.shift(); sendClue(p, clue, 'Mabel, on the old line'); await say('mabel', `Looking for something, dear? ${clue}`); alive(t); }
     else { narr('“I hear you…”', 2000); scream(); say('mabel', 'I hear you…'); const n = neighbors(id).map(x => x.room).filter(r => r !== 'foyer'); if (n.length) game.ghost = pick(n); toast(p, 'Chert', 'That was HER. She knows where you are. Move!'); }
     return;
   }
@@ -520,33 +563,45 @@ async function doSearch(p, s, t){
     else toast(p, 'Chert', 'She was hiding in there. She’s gone. For now.');
     await wait(1000);
   } else {
-    toast(p, 'Chert', `Nothing in the ${s.label}. ${hint(p)}`); await wait(1200);
+    toast(p, 'Chert', `Nothing in the ${s.label}. ${hintLine(p)}`); await wait(1200);
   }
   alive(t);
   p.lookPitch = -.04; p.look = null;
   await animate(p, [from], yawOf(p.dir), 2);
 }
 async function encounter(p, t){
+  if (performance.now() - game.startedAt < GHOST_GRACE) return;
   narr(pick(['“Connecting you now…”', '“Your call cannot be completed.”', '“Please hold.”']), 2200);
   emit('encounter', { player:p.id, room:R[p.room].name }); scream();
   p.ghostHere = true; mabelAppear(p, 2.4);
   await wait(1000);
-  // With the player's camera: she's now behind them in their real room, and they have to hold her stare.
-  const ok = camAvailable(p) ? await stareDown(p) : await challenge(p, pick(['freeze', 'light', 'smile'])); alive(t);
+  // With the player's camera: freeze, or hold a palm up to push her back. Without it: the old sound and light checks.
+  const canWard = mp?.handsReady && camAvailable(p);
+  const ok = camAvailable(p) ? await challenge(p, canWard ? pick(['freeze', 'ward']) : 'freeze') : await challenge(p, pick(['freeze', 'light', 'smile'])); alive(t);
   p.ghostHere = false; mabelHide(); vanish();
   if (ok){
     const n = neighbors(p.room).find(x => x.room === p.prev);
     if (n){ await travel(p, n.stairs ? { kind:'stairs', room:n.room, up:R[n.room].f > R[p.room].f } : { kind:'door', room:n.room, door:n.door, dir:dirBetween(p.room, n.room) }); alive(t); }
     toast(p, 'Chert', `You got away! You ran back to the ${R[p.room].name}.`); return;
   }
+  await caughtFlash(p);
   p.alive = false; if (p.key){ p.key = false; const s = game.spots.find(x => x.content === 'key'); s.searched = false; if (world.motes[s.id]) world.motes[s.id].visible = true; game.keyFound = game.players.some(x => x.key); toast(p, 'Chert', `Mabel took the key back to the ${R[s.room].name}.`); }
   renderPlayer(p); renderTop(); emit('caught', { player:p.id });
   say('chert', `No no no, I lost ${p.name}…`);
   if (!game.players.some(x => x.alive)) await lose('caught');
 }
+// The only camera moment on a loss: that player's own half, Mabel right behind them, for about a second.
+async function caughtFlash(p){
+  if (!camAvailable(p) || !p.half) return;
+  p.haunt = { mode:'caught', dist:1.15, alpha:.95, result:false, born:performance.now(), endAt:performance.now() + 1400 };
+  showHaunt(p, true); scream(); staticBurst(); emit('scream', { player:p.id });
+  await wait(1450 / SPEED);
+  p.haunt = null; showHaunt(p, false);
+}
 function vanish(){ const live = game.players.filter(x => x.alive); const far = ROOMS.map(r => r.id).filter(id => id !== 'foyer' && live.every(p => (bfs(p.room)[id] ?? 9) >= 2)); if (far.length) game.ghost = pick(far); emit('ghost_vanished'); }
 async function ghostPhase(t){
   game.phase = 'ghost';
+  if (performance.now() - game.startedAt < GHOST_GRACE){ emit('ghost_moved'); return; }
   const live = game.players.filter(x => x.alive), occupied = new Set(live.map(p => p.room));
   const opts = neighbors(game.ghost).map(n => n.room).filter(r => r !== 'foyer' && (game.round > 2 || !occupied.has(r)));
   if (opts.length){
@@ -555,8 +610,11 @@ async function ghostPhase(t){
   }
   emit('ghost_moved');
   if (game.over) return;
-  // A glimpse: for a second, a player's own camera shows Mabel standing behind them.
-  if (game.round >= 2 && rand() < .4){ const p = pick(live.filter(camAvailable)); if (p && glimpse(p) && rand() < .5){ await wait(1500); say('chert', 'Wait… did anyone else see that behind you?'); } }
+  // A glimpse: for about a second, one player's own camera shows Mabel standing behind them.
+  if (game.round >= 2 && game.glimpses < 2 && rand() < .25){
+    const p = pick(live.filter(camAvailable));
+    if (p && glimpse(p)){ game.glimpses++; await wait(1400); say('chert', 'Wait… did anyone else see that behind you?'); }
+  }
   if (game.round % 4 === 0 && !game.keyFound && game.clues.length && live.length){ const p = pick(live); await say('chert', 'Wait… I’m picking something up on the line.'); alive(t); sendClue(p, game.clues.shift(), 'Chert overheard it on the line'); }
   else if (game.round >= 4 && rand() < .2){ await hijack(); alive(t); }
   else if (live.some(p => neighbors(p.room).some(n => n.room === game.ghost)) && rand() < .4) say('chert', 'I’m hearing static near one of you… careful.');
@@ -620,6 +678,7 @@ function say(who, text, ms, opts = {}){
 function voiceStart(id, durMs){ const p = pendingSay.get(id); if (p) showLine(p.who, p.text, durMs || p.ms); }
 function voiceDone(id){ const p = pendingSay.get(id); if (!p) return; clearTimeout(p.fallback); pendingSay.delete(id); p.res(); }
 function showLine(who, text, ms){
+  text = String(text || '').replace(/^\s*(chert|mabel)\s*[:\-–—]\s*/i, '').trim();
   if (CALL && hostEl.hidden){ const cc = document.getElementById('callCap'); cc.className = 'show' + (who === 'mabel' ? ' mabel' : ''); cc.innerHTML = `<b>${who === 'mabel' ? 'Mabel' : 'Chert'}</b>`; cc.appendChild(document.createTextNode(text)); clearTimeout(callCapTimer); callCapTimer = setTimeout(() => cc.classList.remove('show'), ms / SPEED); }
   const el = document.getElementById('caption'); el.className = 'show' + (who === 'mabel' ? ' mabel' : '');
   el.innerHTML = `<b>${who === 'mabel' ? 'Mabel' : 'Chert'}</b>`; el.appendChild(document.createTextNode(text));
@@ -630,14 +689,14 @@ function narr(text, ms){ narrEl.textContent = text; narrEl.classList.add('show')
 
 /* ================= DOM ================= */
 const halvesEl = document.getElementById('halves'), menuEl = document.getElementById('menu'), endEl = document.getElementById('end'), missionEl = document.getElementById('mission');
-const narrEl = document.getElementById('narr'), timerText = document.getElementById('timerText'), timerBar = document.getElementById('timerBar');
+const narrEl = document.getElementById('narr'), timerText = document.getElementById('timerText'), timerBar = document.getElementById('timerBar'), timerEl = document.getElementById('timer');
 function buildHalves(){
   halvesEl.innerHTML = '';
   game.players.forEach(p => {
     const el = document.createElement('div'); el.className = 'half';
-    el.innerHTML = `<canvas class="haunt" width="640" height="656" hidden></canvas><canvas class="bubble" width="120" height="120" hidden></canvas><span class="tag"><b style="background:${PCOL[p.id]}"></b>${p.name} · ${["orange", "blue"][p.id]}</span><span class="where"></span><div class="items"></div><div class="opts"></div>`;
+    el.innerHTML = `<canvas class="haunt" width="640" height="656" hidden></canvas><canvas class="bubble" width="120" height="120" hidden></canvas><span class="tag"><b style="background:${PCOL[p.id]}"></b>${p.name}</span><span class="where"></span><div class="items"></div><div class="opts"></div><div class="handchip"><b></b><i><em></em></i></div>`;
     halvesEl.appendChild(el);
-    p.half = { el, haunt:el.querySelector('.haunt'), bubble:el.querySelector('.bubble'), where:el.querySelector('.where'), items:el.querySelector('.items'), opts:el.querySelector('.opts'), card:null, toast:null, dead:null, banner:null };
+    p.half = { el, haunt:el.querySelector('.haunt'), bubble:el.querySelector('.bubble'), where:el.querySelector('.where'), items:el.querySelector('.items'), opts:el.querySelector('.opts'), handchip:el.querySelector('.handchip'), card:null, toast:null, dead:null, banner:null };
     renderPlayer(p);
   });
 }
@@ -647,7 +706,7 @@ function renderPlayer(p){
   p.half.items.innerHTML = (p.key ? '<span>Brass key</span>' : '') + (p.fuse ? '<span>Fuse</span>' : '');
   if (!p.alive && !p.half.dead){
     const d = document.createElement('div'); d.className = 'dead';
-    d.innerHTML = `<div class="frameP"><i style="background:${PCOL[p.id]}"></i><span class="stamp">DISCONNECTED</span></div><small>Your real face goes in this frame during the call</small>`;
+    d.innerHTML = `<div class="frameP"><i style="background:${PCOL[p.id]}"></i><span class="stamp">DISCONNECTED</span></div><small>The line went dead.</small>`;
     p.half.el.appendChild(d); p.half.dead = d;
   }
   renderOpts(p);
@@ -659,6 +718,7 @@ function renderOpts(p){
     const b = document.createElement('button'); b.type = 'button';
     let cls = 'opt ' + o.kind;
     if (p.pick && p.pick.key === o.key) cls += ' picked';
+    if (p.handPreview === o.key) cls += ' target';
     if (o.room === game.ghost && o.kind !== 'search') cls += ' static';
     if (o.kind === 'door' && o.door.sealed) cls += ' sealed'; else if (o.kind === 'door' && o.door.locked) cls += ' locked';
     b.className = cls;
@@ -686,7 +746,7 @@ function renderTop(){
   const done = { key:game.keyFound || game.players.some(p => p.key), room:game.sealedSeen, stone:game.winner !== null };
   document.querySelectorAll('#objs span').forEach(s => s.classList.toggle('done', !!done[s.dataset.o]));
 }
-const HINT = { 'Please hold…':'Chert is watching your camera. Freeze.', 'Blackout':'Turn on a light, or say LIGHT ON.', 'Smile for the operator':'Not a sound. Chert can hear you.', 'Padlocked':'Say KEYS and hold them up.', 'Riiing…':'Say HELLO.', 'The spark stone!':'Say STRIKE IT.' };
+const HINT = { 'Please hold…':'Chert is watching your camera. Freeze.', 'Blackout':'Turn on a light, or say LIGHT ON.', 'Smile for the operator':'Not a sound. Chert can hear you.', 'Padlocked':'Say KEYS and hold them up.', 'She’s reaching for you':'Hold your palm up to the camera.', 'The spark stone!':'Say STRIKE IT.' };
 function showCard(p, title, body, cls, act){
   hideCard(p);
   const c = document.createElement('div'); c.className = 'card ' + cls;
@@ -818,7 +878,7 @@ const PORTRAITS = [0, 1, 2, 3, 4, 5].map(portraitTex);
 const stage = document.getElementById('stage3d');
 const renderer = new THREE.WebGLRenderer({ antialias:true, preserveDrawingBuffer:true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.setSize(1280, 656, false);
-renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.4;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = CALL ? 1.62 : 1.4;
 stage.appendChild(renderer.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x040305); scene.fog = new THREE.FogExp2(0x070508, 0.07);
 const hemi = new THREE.HemisphereLight(0x8a7a90, 0x2a1a10, 0.34); scene.add(hemi);
@@ -984,8 +1044,10 @@ function buildWorld(){
         box(.12, DH + .12, .2, mats.trim, -DW / 2 - .06, (DH + .12) / 2, -S / 2 + .08, wall); box(.12, DH + .12, .2, mats.trim, DW / 2 + .06, (DH + .12) / 2, -S / 2 + .08, wall);
         box(DW + .36, .16, .2, mats.trim, 0, DH + .08, -S / 2 + .08, wall);
         const jamb = mats.dark; box(.04, DH, .3, jamb, -DW / 2, DH / 2, -S / 2 - .1, wall); box(.04, DH, .3, jamb, DW / 2, DH / 2, -S / 2 - .1, wall); box(DW, .04, .3, jamb, 0, DH, -S / 2 - .1, wall);
-        const plaque = new THREE.Mesh(new THREE.PlaneGeometry(1.1, .2), new THREE.MeshStandardMaterial({ map:textTex(front ? 'Front Door' : R[door.room].name), roughness:.6, metalness:.2, emissive:0x2a1c08, emissiveIntensity:.5 }));
+        const plaque = new THREE.Mesh(new THREE.PlaneGeometry(1.35, .24), new THREE.MeshStandardMaterial({ map:textTex(front ? 'Front Door' : R[door.room].name), roughness:.6, metalness:.2, emissive:0x2a1c08, emissiveIntensity:.7 }));
         plaque.position.set(0, DH + .38, -S / 2 + .03); wall.add(plaque);
+        const floating = new THREE.Sprite(new THREE.SpriteMaterial({ map:textTex(front ? 'Front Door' : R[door.room].name), transparent:true, depthWrite:false }));
+        floating.scale.set(1.35, .27, 1); floating.position.set(0, DH + .68, -S / 2 + .06); wall.add(floating);
         sconce(wall, -1.05); sconce(wall, 1.05);
         if (front){ const fd = new THREE.Mesh(new THREE.BoxGeometry(DW - .04, DH - .02, .08), new THREE.MeshStandardMaterial({ map:doorTex('#2a1a10'), roughness:.7 })); fd.position.set(0, DH / 2, -S / 2 - .02); wall.add(fd); for (const [y, r] of [[1.6, .35], [.9, -.3]]){ const b = box(1.5, .14, .04, mats.lightwood, 0, y, -S / 2 + .05, wall); b.rotation.z = r; } box(.18, .18, .06, mats.iron, .4, 1.1, -S / 2 + .05, wall); }
       } else if (windowed){
@@ -999,7 +1061,13 @@ function buildWorld(){
       } else { seg(-S / 2, S / 2, 0, WH); base(-S / 2, S / 2); }
     }
     room.spots.forEach((s, i) => { const [fn, depth] = BUILD[s[0]]; const obj = fn(room); put(obj, g, s[2], s[3], depth); const spot = game.spots.find(x => x.id === room.id + ':' + i); const w = wallPos(s[2], s[3], depth);
-      const mote = new THREE.Sprite(new THREE.SpriteMaterial({ map:glowTex('190,220,240'), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity:.35 })); mote.scale.set(.35, .35, 1); mote.position.set(w.x - DIRV[s[2]][0] * .35, (SPOT_Y[s[0]] || .85) + .25, w.z - DIRV[s[2]][1] * .35); mote.userData.base = mote.position.y; g.add(mote); world.motes[spot.id] = mote; });
+      const mote = new THREE.Sprite(new THREE.SpriteMaterial({ map:glowTex('190,220,240'), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity:.35 })); mote.scale.set(.35, .35, 1); mote.position.set(w.x - DIRV[s[2]][0] * .35, (SPOT_Y[s[0]] || .85) + .25, w.z - DIRV[s[2]][1] * .35); mote.userData.base = mote.position.y; g.add(mote); world.motes[spot.id] = mote;
+      if (spot.content === 'key'){
+        const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map:glowTex('255,210,120'), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity:.55 }));
+        glow.scale.set(1.1, 1.1, 1); glow.position.copy(mote.position); g.add(glow); world.keyGlow = glow;
+        const light = new THREE.PointLight(0xffc060, 1.5, 3.4, 1.6); light.position.copy(mote.position); g.add(light); world.keyLight = light;
+      }
+    });
     if (game.phones.includes(room.id)){ const ph = put(B_phoneTable(), g, room.phone[0], room.phone[1], .6); world.phones[room.id] = ph.userData; }
     furnish(room, g);
     if (room.chand) chandelier(g, 0, 0); else ceilLamp(g, 0, 0);
@@ -1133,7 +1201,7 @@ async function travel(p, o){
   p.lookPitch = -.04; p.look = null;
   p.animTarget = o.room;
   await animate(p, pts, finalYaw, 2.3);
-  p.animTarget = null; p.prev = from; p.room = o.room; p.dir = newDir; p.seen.add(o.room);
+  p.animTarget = null; p.prev = from; p.room = o.room; p.dir = newDir; p.seen.add(o.room); p.stuckAt = performance.now();
   renderPlayer(p); renderTop(); emit('entered', { player:p.id, room:R[p.room].name, floor:R[p.room].f ? 'upstairs' : 'ground' });
 }
 const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
@@ -1275,7 +1343,7 @@ function drawHost(now, dt){
   const HW = hostFx.canvas.width, HH = hostFx.canvas.height, kx = hostCanvas.width / HW, ky = hostCanvas.height / HH;
   hostFx.clearRect(0, 0, HW, HH);
   const weak = !restored && (hij || sig <= 2 || dead);
-  if (weak && !reduceMotion){
+  if (weak && !reduceMotion && !CALL){
     for (let i = 0; i < (hij ? 26 : 8); i++){ hostFx.fillStyle = `rgba(${hij ? '170,210,240' : '255,255,255'},${Math.random() * .12})`; hostFx.fillRect(0, Math.random() * HH, HW, 1 + Math.random() * 4 * HH / 400); }
     if (Math.random() < (hij ? .5 : .12)){ const y = Math.random() * HH * .95, bh = HH * .05; hostFx.drawImage(hostCanvas, 0, y * ky, hostCanvas.width, bh * ky, (Math.random() - .5) * HW * .1, y, HW, bh); }
     for (let i = 0; i < 400; i++){ hostFx.fillStyle = `rgba(255,255,255,${Math.random() * .08})`; hostFx.fillRect(Math.random() * HW, Math.random() * HH, 1, 1); }
@@ -1283,37 +1351,79 @@ function drawHost(now, dt){
 }
 
 
-/* ================= the players' cameras: Mabel filter, stare-downs, webcam bubble =================
-   The agent sends each player's FaceTime camera here about 7 times a second (deadLine.cam). With &localcam, this
-   computer's webcam is Player 1 (for testing). Google's MediaPipe finds the person (so Mabel can stand BEHIND them)
-   and their face (are their eyes open, are they facing the screen). All of it runs in this page, on the agent's Mac. */
+/* ================= the players' cameras: Mabel filter, hands, webcam bubble =================
+   The agent sends each player's FaceTime tile here about 7 times a second (deadLine.cam). With &localcam, this
+   computer's webcam is Batman (for testing). Google's MediaPipe finds the person (so Mabel can stand BEHIND them),
+   their face (eyes, mouth, attention), and their hands (point, fist, palm, thumbs up). All of it runs in this page,
+   on the agent's Mac. The three legacy solutions are initialized one after another because their wasm loaders share
+   a global; never run their first send() calls in parallel. */
 const MP = params.get('mp') || './mp';
-const MP_CDN = { seg:'https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@0.1.1675465747', face:'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619' };
-const cams = [0, 1].map(id => ({ id, img:null, last:0, mask:null, face:null, att:{ present:false }, attAt:0, done:0 }));
+const MP_CDN = {
+  seg:'https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@0.1.1675465747',
+  face:'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619',
+  hands:'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240',
+};
+const cams = [0, 1].map(id => ({ id, img:null, last:0, mask:null, face:null, att:{ present:false }, attAt:0, mouth:0, mouthAt:0, mouthHistory:[], done:0, segAt:0, handAt:0, handSendAt:0, hands:null, hand:null, hold:null, fired:null, needMask:false }));
 let mp = null;
 function loadScript(src){ return new Promise((res, rej) => { const el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = rej; document.head.appendChild(el); }); }
 async function loadMP(){
   if (mp) return mp;
   mp = { loading:true };
-  const attempt = async base => { await loadScript(`${base.seg}/selfie_segmentation.js`); await loadScript(`${base.face}/face_mesh.js`); return base; };
-  let base;
-  try { base = await attempt({ seg:`${MP}/selfie_segmentation`, face:`${MP}/face_mesh` }); }
-  catch { try { base = await attempt(MP_CDN); } catch (e) { console.warn('[camera] tracking unavailable'); mp = { failed:true }; return mp; } }
-  try {
-    const seg = new window.SelfieSegmentation({ locateFile:f => `${base.seg}/${f}` }); seg.setOptions({ modelSelection:1 });
-    const face = new window.FaceMesh({ locateFile:f => `${base.face}/${f}` }); face.setOptions({ maxNumFaces:1, refineLandmarks:false, minDetectionConfidence:.5, minTrackingConfidence:.5 });
-    let target = null;
-    seg.onResults(r => { if (target) target.mask = r.segmentationMask; });
-    face.onResults(r => { if (!target) return; target.face = (r.multiFaceLandmarks && r.multiFaceLandmarks[0]) || null; target.att = attention(target.face); target.attAt = performance.now(); });
-    mp = { ready:true, async run(c){ target = c; await seg.send({ image:c.img }); await face.send({ image:c.img }); target = null; } };
-    trackLoop();
-  } catch (e) { console.warn('[camera] tracking failed to start', e); mp = { failed:true }; }
+  // Load each solution independently. A missing hands package must not take
+  // face tracking down with it; voice and the other challenges still work.
+  const files = { seg:'selfie_segmentation.js', face:'face_mesh.js', hands:'hands.js' };
+  const base = { seg:`${MP}/selfie_segmentation`, face:`${MP}/face_mesh`, hands:`${MP}/hands` };
+  const loaded = {};
+  for (const key of Object.keys(files)) {
+    try { await loadScript(`${base[key]}/${files[key]}`); loaded[key] = true; }
+    catch {
+      try { await loadScript(`${MP_CDN[key]}/${files[key]}`); base[key] = MP_CDN[key]; loaded[key] = true; }
+      catch { loaded[key] = false; console.warn(`[camera] ${key} tracking unavailable`); }
+    }
+  }
+  if (!loaded.seg && !loaded.face && !loaded.hands) { mp = { failed:true }; return mp; }
+  let seg = null, face = null, hands = null;
+  try { seg = new window.SelfieSegmentation({ locateFile:f => `${base.seg}/${f}` }); seg.setOptions({ modelSelection:1 }); }
+  catch (e) { console.warn('[camera] person mask unavailable', e); }
+  try { face = new window.FaceMesh({ locateFile:f => `${base.face}/${f}` }); face.setOptions({ maxNumFaces:1, refineLandmarks:false, minDetectionConfidence:.5, minTrackingConfidence:.5 }); }
+  catch (e) { console.warn('[camera] face tracking unavailable', e); }
+  try { hands = new window.Hands({ locateFile:f => `${base.hands}/${f}` }); hands.setOptions({ maxNumHands:2, modelComplexity:0, minDetectionConfidence:.5, minTrackingConfidence:.5 }); }
+  catch (e) { console.warn('[camera] hand tracking unavailable', e); }
+  if (!seg && !face && !hands) { mp = { failed:true }; return mp; }
+  let target = null;
+  if (seg) seg.onResults(r => { if (target) target.mask = r.segmentationMask; });
+  if (face) face.onResults(r => {
+    if (!target) return;
+    const now = performance.now();
+    target.face = (r.multiFaceLandmarks && r.multiFaceLandmarks[0]) || null;
+    target.att = attention(target.face);
+    target.attAt = now;
+    target.mouth = target.att.mouth || 0; target.mouthAt = now;
+    target.mouthHistory.push({ t:now, v:target.mouth });
+    if (target.mouthHistory.length > 60) target.mouthHistory.shift();
+  });
+  if (hands) hands.onResults(r => { if (target) handleHands(target.id, r.multiHandLandmarks || [], r.multiHandedness || []); });
+  mp = {
+    ready:true, segReady:!!seg, faceReady:!!face, handsReady:!!hands, handErrors:0,
+    async run(c){
+      target = c;
+      if (seg && c.needMask) { try { await seg.send({ image:c.img }); } catch (e) {} c.segAt = performance.now(); }
+      if (face) { try { await face.send({ image:c.img }); } catch (e) {} }
+      if (hands && mp.handsReady && performance.now() - c.handSendAt > 220) {
+        try { await hands.send({ image:c.img }); }
+        catch (e) { if (++mp.handErrors > 2) { mp.handsReady = false; console.warn('[camera] hand tracking disabled after repeated errors:', e.message); } }
+        c.handSendAt = performance.now();
+      }
+      target = null;
+    },
+  };
+  trackLoop();
   return mp;
 }
 async function trackLoop(){
   while (true){
     const c = cams.filter(c => c.img && c.last > c.done).sort((a, b) => a.done - b.done)[0];
-    if (c && mp.ready){ const stamp = c.last; try { await mp.run(c); } catch (e) {} c.done = stamp; }
+    if (c && mp?.ready){ const stamp = c.last; try { await mp.run(c); } catch (e) {} c.done = stamp; }
     else await new Promise(r => setTimeout(r, 60));
   }
 }
@@ -1322,23 +1432,117 @@ function camFrame(player, b64){
   const im = new Image();
   im.onload = () => { c.img = im; c.last = performance.now(); };
   im.src = 'data:image/jpeg;base64,' + b64;
-  if (!mp) loadMP();
+  if (!mp) void loadMP();
 }
 if (params.has('localcam') && navigator.mediaDevices){
   navigator.mediaDevices.getUserMedia({ video:{ width:640, height:480 } }).then(stream => {
     const v = document.createElement('video'); v.srcObject = stream; v.muted = true; v.playsInline = true; v.play();
     setInterval(() => { if (v.readyState >= 2){ cams[0].img = v; cams[0].last = performance.now(); } }, 150);
-    loadMP();
+    void loadMP();
   }).catch(e => console.warn('[camera] no local webcam', e));
 }
 const camLive = c => c.img && performance.now() - c.last < 2500;
-function camAvailable(p){ return !!(p && camLive(cams[p.id]) && mp && mp.ready && performance.now() - cams[p.id].attAt < 3000); }
+function camAvailable(p){ return !!(p && camLive(cams[p.id]) && mp?.faceReady && performance.now() - cams[p.id].attAt < 3000); }
 function attention(f){
-  if (!f) return { present:false, eyesOpen:false, facing:false };
+  if (!f) return { present:false, eyesOpen:false, facing:false, mouth:0 };
   const d = (a, b) => Math.hypot(f[a].x - f[b].x, f[a].y - f[b].y);
   const ear = (d(159, 145) / d(33, 133) + d(386, 374) / d(263, 362)) / 2;
   const eyeW = d(33, 263), midX = (f[33].x + f[263].x) / 2, yaw = (f[1].x - midX) / eyeW;
-  return { present:true, eyesOpen:ear > .12, facing:Math.abs(yaw) < .2, ear, yaw, cx:f[1].x, cy:(f[33].y + f[263].y) / 2, size:eyeW };
+  const mouth = Math.abs(f[13].y - f[14].y) / Math.max(.05, eyeW);
+  return { present:true, eyesOpen:ear > .12, facing:Math.abs(yaw) < .2, ear, yaw, mouth, cx:f[1].x, cy:(f[33].y + f[263].y) / 2, size:eyeW };
+}
+
+function handLabel(g){
+  if (!g || g.gesture === 'none') return '';
+  return `${GESTURE_LABELS[g.gesture] || ''}${g.direction ? ` ${g.direction}` : ''}`;
+}
+function updateHandChip(p, g, progress = 0){
+  const chip = p?.half?.handchip;
+  if (!chip) return;
+  const label = handLabel(g);
+  chip.classList.toggle('on', !!label);
+  if (!label) return;
+  chip.querySelector('b').textContent = label;
+  chip.querySelector('i em').style.width = `${Math.round(Math.max(0, Math.min(1, progress)) * 100)}%`;
+}
+function previewGesture(p, g){
+  if (!p?.half || !game || game.phase !== 'choose' || !p.alive || p.anim){ if (p && p.handPreview){ p.handPreview = null; renderOpts(p); } return; }
+  let key = null;
+  if (g.gesture === 'point' && g.direction){
+    const rel = { up:0, right:1, down:2, left:3 }[g.direction];
+    const opts = optionsFor(p);
+    const stair = (g.direction === 'up' || g.direction === 'down') ? opts.find(o => o.kind === 'stairs' && (g.direction === 'up' ? o.up : !o.up)) : null;
+    key = (stair || opts.find(o => o.kind === 'door' && o.rel === rel))?.key || null;
+  } else if (g.gesture === 'fist'){
+    const ss = optionsFor(p).filter(o => o.kind === 'search');
+    const idx = p.pick ? ss.findIndex(o => o.key === p.pick.key) : -1;
+    key = ss.length ? ss[(idx + 1) % ss.length].key : null;
+  }
+  if (p.handPreview !== key){ p.handPreview = key; renderOpts(p); }
+}
+function fireGesture(p, g){
+  if (!p || !p.alive || !game || game.over) return;
+  if (p.challenge){
+    if (p.challenge.type === 'ward' && g.gesture === 'open_palm') return input(p, 'palm');
+    if (p.challenge.type === 'strike' && (g.gesture === 'fist' || g.gesture === 'point')) return input(p, 'act');
+    return;
+  }
+  if (game.phase !== 'choose' || p.anim) return;
+  if (g.gesture === 'point' && g.direction){
+    const rel = { up:0, right:1, down:2, left:3 }[g.direction];
+    const opts = optionsFor(p);
+    const stair = (g.direction === 'up' || g.direction === 'down') ? opts.find(o => o.kind === 'stairs' && (g.direction === 'up' ? o.up : !o.up)) : null;
+    const o = stair || opts.find(x => x.kind === 'door' && x.rel === rel);
+    if (o) return input(p, 'opt', o.key);
+    return;
+  }
+  if (g.gesture === 'fist'){
+    const ss = optionsFor(p).filter(o => o.kind === 'search');
+    if (ss.length){ const idx = p.pick ? ss.findIndex(o => o.key === p.pick.key) : -1; return input(p, 'opt', ss[(idx + 1) % ss.length].key); }
+  }
+}
+function handleHands(player, hands, handedness){
+  const c = cams[player]; if (!c) return;
+  const p = game?.players[player];
+  const now = performance.now();
+  const best = hands.map((lm, i) => ({ ...classifyHand(lm, { handednessScore:handedness[i]?.score || .8, mirror:MIRROR }), at:now }))
+    .sort((a, b) => b.confidence - a.confidence)[0];
+  if (!best || (best.gesture === 'none' && !best.raised)){
+    if (!c.noHandSince) c.noHandSince = now;
+    if (now - c.noHandSince > 400) { c.hold = null; c.fired = null; }
+    c.hand = null; c.handAt = now;
+    updateHandChip(p, null);
+    if (p) previewGesture(p, { gesture:'none' });
+    return;
+  }
+  c.noHandSince = 0;
+  c.hand = best; c.handAt = now;
+  if (best.gesture === 'none'){
+    c.hold = null;
+    updateHandChip(p, null);
+    if (p) previewGesture(p, { gesture:'none' });
+    return;
+  }
+  if (!p){
+    // Lobby: thumbs up is ready. Hold it so a hand passing through frame does not start the game.
+    const key = 'thumbs_up';
+    if (best.gesture !== key){ c.hold = null; return; }
+    if (c.fired?.key === key) return;
+    if (!c.hold || c.hold.key !== key) c.hold = { key, since:now };
+    else if (now - c.hold.since >= HAND_HOLD){ emit('gesture', { player, action:'ready', gesture:'thumbs_up' }); c.hold = null; c.fired = { key }; }
+    return;
+  }
+  if (p.haunt) { updateHandChip(p, null); return; }
+  previewGesture(p, best);
+  const key = `${best.gesture}|${best.direction || ''}`;
+  if (!c.hold || c.hold.key !== key){ c.hold = { key, since:now }; updateHandChip(p, best, 0); return; }
+  const held = now - c.hold.since;
+  updateHandChip(p, best, held / HAND_HOLD);
+  if (held < HAND_HOLD) return;
+  if (c.fired?.key === key) return;   // hold the same gesture all you like: change it to fire again
+  c.fired = { key };
+  c.hold = null;
+  fireGesture(p, best);
 }
 
 /* Mabel for the camera filter: a pale woman in a 1920s operator headset, long black hair, hollow eyes.
@@ -1406,6 +1610,7 @@ function coverRect(src, W, H){ const sw = src.videoWidth || src.naturalWidth, sh
 function drawCamera(p, now){
   if (!p.half) return;
   const c = cams[p.id], live = camLive(c);
+  c.needMask = !!p.haunt;
   // webcam bubble: your own face, haunted-house tinted, while the game runs
   p.half.bubble.hidden = !live || !!p.haunt || !p.alive || game.over;
   if (!p.half.bubble.hidden){
@@ -1447,21 +1652,16 @@ function drawCamera(p, now){
   if (h.result === false){ g.save(); g.translate((Math.random() - .5) * 18, (Math.random() - .5) * 18); }
   g.drawImage(hauntTmp, 0, 0);
   if (h.result === false){ g.restore(); g.fillStyle = 'rgba(160,0,0,.35)'; g.fillRect(0, 0, W, H); }
-  // found-footage look: vignette, grain, scanlines, REC
+  // found-footage look: vignette, a little grain, REC. No scanlines in the call view: FaceTime compression turns them to mush.
   const vg = g.createRadialGradient(W / 2, H / 2, H * .25, W / 2, H / 2, H * .8); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.85)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
-  g.globalAlpha = .12; g.drawImage(document.getElementById('grain'), 0, 0, W, H); g.globalAlpha = 1;
-  g.fillStyle = 'rgba(0,0,0,.18)'; for (let y = (now / 30) % 4; y < H; y += 4) g.fillRect(0, y, W, 1);
-  g.font = '18px "Special Elite", monospace'; g.fillStyle = Math.floor(now / 500) % 2 ? '#ff3a2a' : 'rgba(255,58,42,.3)'; g.fillText('● REC', 20, H - 24);
-  g.fillStyle = 'rgba(239,231,216,.8)'; g.fillText(`CAM ${p.id + 1}  ·  HOLLOW LINE MANOR`, 100, H - 24);
-  if (h.mode === 'stare' && h.result == null){
-    g.textAlign = 'center'; g.font = '34px "IM Fell English SC", serif'; g.fillStyle = '#ecdfcf'; g.fillText(h.watching ? 'Hold her stare…' : 'DON’T LOOK AWAY', W / 2, 96);
-    g.fillStyle = 'rgba(239,231,216,.15)'; g.fillRect(W / 2 - 150, 116, 300, 6); g.fillStyle = '#f2873a'; g.fillRect(W / 2 - 150, 116, 300 * Math.min(1, h.hold / h.need), 6);
-    g.textAlign = 'start';
-  }
+  if (!CALL){ g.globalAlpha = .1; g.drawImage(document.getElementById('grain'), 0, 0, W, H); g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,.18)'; for (let y = (now / 30) % 4; y < H; y += 4) g.fillRect(0, y, W, 1); }
+  g.font = '22px "Special Elite", monospace'; g.fillStyle = Math.floor(now / 500) % 2 ? '#ff3a2a' : 'rgba(255,58,42,.3)'; g.fillText('● REC', 20, H - 24);
+  g.fillStyle = 'rgba(239,231,216,.8)'; g.fillText(`CAM ${p.id + 1}  ·  HOLLOW LINE MANOR`, 120, H - 24);
   if (h.flicker > now){ g.fillStyle = `rgba(0,0,0,${Math.random() * .5})`; g.fillRect(0, 0, W, H); }
 }
 function showHaunt(p, on){
   const cv = p.half.haunt;
+  cams[p.id].segAt = 0;
   if (on){ const w = Math.round(p.half.el.clientWidth) || 640, h = Math.round(p.half.el.clientHeight) || 656; if (cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; } }
   cv.hidden = !on;
 }
@@ -1469,38 +1669,9 @@ function showHaunt(p, on){
 function glimpse(p){
   if (!p || p.haunt || !camAvailable(p)) return false;
   p.haunt = { mode:'glimpse', dist:.55, alpha:.8 }; showHaunt(p, true); staticBurst(); emit('glimpse', { player:p.id });
-  setTimeout(() => { if (p.haunt) p.haunt.flicker = performance.now() + 400; }, 1800 / SPEED);
-  setTimeout(() => { p.haunt = null; showHaunt(p, false); }, 2300 / SPEED);
+  setTimeout(() => { if (p.haunt) p.haunt.flicker = performance.now() + 350; }, 850 / SPEED);
+  setTimeout(() => { p.haunt = null; showHaunt(p, false); }, 1250 / SPEED);
   return true;
-}
-/* The stare-down: Mabel stands behind you. Every time you look away, close your eyes or turn your head, she creeps closer.
-   Hold her stare long enough and she fades. */
-async function stareDown(p){
-  const c = cams[p.id];
-  p.haunt = { mode:'stare', dist:1, alpha:.82, hold:0, need:6, away:0, watching:true, result:null };
-  showHaunt(p, true); staticBurst();
-  await say('mabel', 'Don’t look away, caller. Not even once.', 0, { urgent:true });
-  emit('challenge_start', { player:p.id, challenge:'stare', seconds:14, ask:'Hold her stare' });
-  return new Promise(resolve => {
-    const start = performance.now(); let last = start;
-    const tick = setInterval(() => {
-      const now = performance.now(), dt = (now - last) / 1000 * SPEED, h = p.haunt; last = now;
-      const fresh = now - c.attAt < 1500;
-      const watching = fresh ? (c.att.present && c.att.eyesOpen && c.att.facing) : true;
-      h.watching = watching;
-      if (watching){ h.hold += dt; h.away = 0; }
-      else { h.away += dt; if (h.away > .3){ h.dist = Math.max(0, h.dist - dt * .6); h.flicker = now + 140; } }
-      if (h.dist <= 0) end(false); else if (h.hold >= h.need) end(true); else if ((now - start) * SPEED > 15000) end(true);
-    }, 100);
-    function end(ok){
-      clearInterval(tick); hideCard(p);
-      const h = p.haunt; h.result = ok; h.endAt = performance.now();
-      if (!ok){ h.dist = -.3; scream(); flash(); say('mabel', 'Gotcha.', 0, { urgent:true }); }
-      else say('chert', 'You stared her down! She’s gone.');
-      emit('challenge_end', { player:p.id, challenge:'stare', passed:ok });
-      setTimeout(() => { p.haunt = null; showHaunt(p, false); resolve(ok); }, (ok ? 900 : 1700) / SPEED);
-    }
-  });
 }
 /* The countdown: Chert cuts calls at 5 minutes, so the signal bars are the time until the line goes dead. */
 function tickClock(now){
@@ -1508,12 +1679,59 @@ function tickClock(now){
   const left = game.clockEnd - now, sig = Math.max(0, Math.ceil(left / game.clockTotal * MAXSIG));
   if (sig !== game.signal){ game.signal = sig; emit('signal', { signal:sig }); }
   if (Math.floor(now / 1000) !== game.lastSec){ game.lastSec = Math.floor(now / 1000); renderTop(); }
+  const urgent = left < 30000 / SPEED;
+  if (timerEl) timerEl.classList.toggle('danger', urgent);
   if (left < 60000 / SPEED && !game.warned.m1){ game.warned.m1 = true; say('chert', 'One minute before this line goes dead!'); }
-  if (left < 20000 / SPEED && !game.warned.s20){ game.warned.s20 = true; say('chert', 'Twenty seconds! The line is going!'); }
+  if (left < 30000 / SPEED && !game.warned.s30){ game.warned.s30 = true; say('chert', 'Thirty seconds! The line is going!'); }
+  if (left < 10000 / SPEED && !game.warned.s10){ game.warned.s10 = true; say('chert', 'Ten seconds!'); }
   if (left <= 0 && !game.over){ token++; lose('signal'); }
 }
 function heatChip(p, word){ banner(p, word === 'Warmer' ? 'Warmer' : 'Colder', word === 'Warmer' ? 'Closer to what you need.' : 'Further away.', 1300); }
-function hint(p){
+function firstStep(from, to){
+  if (from === to) return null;
+  const seen = new Set([from]), q = [{ room:from, first:null }];
+  while (q.length){
+    const { room, first } = q.shift();
+    for (const n of neighbors(room)){
+      if (seen.has(n.room)) continue;
+      seen.add(n.room);
+      const step = first || n;
+      if (n.room === to) return step;
+      q.push({ room:n.room, first:step });
+    }
+  }
+  return null;
+}
+function hintInfo(p, item = 'key'){
+  if (item === 'key' && p.key) return { item, level:3, text:'You have the key. Get upstairs and find the red door.', room:'', distance:0, direction:'', furniture:'the brass key' };
+  if (item === 'key' && game.keyFound){
+    const holder = game.players.find(x => x.key);
+    return { item, level:3, text:`${holder ? holder.name : 'Someone'} has the key. Find the red door upstairs.`, room:'', distance:0, direction:'', furniture:'the brass key' };
+  }
+  const target = item === 'stone' ? game.stone : game.keyRoom;
+  const distance = bfs(p.room)[target] ?? 99;
+  const step = firstStep(p.room, target);
+  const dir = step?.stairs ? (step.up ? 'upstairs' : 'downstairs') : step ? REL_NAME[(dirBetween(p.room, step.room) - p.dir + 4) % 4].toLowerCase() : '';
+  const near = distance === 0 ? 'right here' : distance <= 2 ? 'close' : distance >= 4 ? 'far' : 'a few rooms away';
+  const asks = p.hints[item] || 0;
+  const stuck = performance.now() - p.stuckAt > 60000;
+  const level = Math.min(3, 1 + asks + (stuck ? 1 : 0));
+  const keySpot = game.spots.find(s => s.content === 'key');
+  let text;
+  if (distance === 0) text = item === 'stone' ? 'The stone is here. Strike it.' : `You’re in the ${R[target].name}. Search everything.`;
+  else if (level === 1) text = `${item === 'stone' ? 'The stone' : 'The key'} is ${near}${dir ? `, ${dir}` : ''}.`;
+  else if (level === 2) text = `It’s in the ${R[target].name}${R[target].f ? ' upstairs' : ' downstairs'}.`;
+  else text = item === 'stone' ? `It’s in the ${R[target].name}, behind the red door. Strike it.` : `Check the ${keySpot.label} in the ${R[target].name}.`;
+  return { item, level, text, room:R[target].name, distance, direction:dir, furniture:item === 'key' ? keySpot.label : 'the spark stone' };
+}
+function hint(player, item = 'key'){
+  const p = game && game.players[player];
+  if (!p) return null;
+  const info = hintInfo(p, item === 'stone' ? 'stone' : 'key');
+  p.hints[info.item] = (p.hints[info.item] || 0) + 1;
+  return info;
+}
+function hintLine(p){
   if (!p.key){ const k = R[game.keyRoom]; return `But the static says her key is ${k.f ? 'upstairs' : 'downstairs'}, ${COL_TXT[k.c]}.`; }
   return 'You have the key. Get upstairs and find the red door.';
 }
@@ -1541,11 +1759,12 @@ function frame(now){
       world.mobiles.forEach(m => m.children.forEach((c, i) => { if (c.geometry && c.geometry.type === 'SphereGeometry' && c.position.y > 1.1) c.position.y = 1.18 + Math.sin(now / 900 + i) * .02; }));
       world.chandeliers.forEach((c, i) => c.rotation.y = Math.sin(now / 3000 + i) * .05);
       Object.values(world.motes).forEach((m, i) => { if (m.visible){ m.position.y = m.userData.base + Math.sin(now / 700 + i) * .05; m.material.opacity = .22 + Math.sin(now / 500 + i) * .12; } });
+      if (world.keyGlow){ const pulse = .5 + Math.sin(now / 520) * .18; world.keyGlow.visible = !game.keyFound; world.keyGlow.material.opacity = pulse; if (world.keyLight) world.keyLight.intensity = 1.1 + pulse; }
     }
     mats.rain.map.offset.y += dt * 1.6;
     if (now > nextLightning){ lightningT = now; nextLightning = now + 14000 + Math.random() * 18000; setTimeout(thunder, 500 + Math.random() * 900); }
     const lk = now - lightningT, strike = lk < 700 && (lk < 90 || (lk > 180 && lk < 260));
-    hemi.intensity = strike ? 1.8 : .34; mats.win.color.setHex(strike ? 0xffffff : 0x9aa8c0);
+    hemi.intensity = strike ? 1.8 : CALL ? .5 : .34; mats.win.color.setHex(strike ? 0xffffff : 0x9aa8c0);
     Object.values(world.phones).forEach(ph => { const h = ph.handset; if (ph.ring && now < ph.ring && !reduceMotion){ h.position.x = Math.sin(now / 25) * .015; h.rotation.z = Math.sin(now / 30) * .06; } else { h.position.x = 0; h.rotation.z = 0; } });
     if (world.stone){ const u = world.stone.userData; u.crystal.rotation.y += dt * .8; u.crystal.position.y = 1.32 + Math.sin(now / 500) * .05; if (u.burst){ const k = Math.max(0, 1 - (now - u.burst) / 2500); u.light.intensity = 6 + k * 18; u.glow.scale.setScalar(1.6 + k * 6); } }
     stepBurst(world.burst, now, dt);
@@ -1558,7 +1777,7 @@ function frame(now){
     game.players.forEach((p, i) => { const w = W / n, x = i * w; renderer.setViewport(x, 0, w, H); renderer.setScissor(x, 0, w, H); p.cam.aspect = w / H; p.cam.updateProjectionMatrix(); renderer.render(scene, p.cam); });
     game.players.forEach(p => { if (p.challenge && p.half.cardBar){ const left = 1 - (now - p.challenge.start) / p.challenge.dur; p.half.cardBar.style.width = Math.max(0, left * 100) + '%'; } });
   }
-  if (!reduceMotion){ const img = grainC.createImageData(320, 164); for (let i = 0; i < img.data.length; i += 4){ const v = Math.random() * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; } grainC.putImageData(img, 0, 0); }
+  if (!reduceMotion && !CALL){ const img = grainC.createImageData(320, 164); for (let i = 0; i < img.data.length; i += 4){ const v = Math.random() * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; } grainC.putImageData(img, 0, 0); }
   const sw = document.getElementById('switching'); if (!sw.hidden){ const nc = document.getElementById('swNoise').getContext('2d'), img = nc.createImageData(160, 90); for (let i = 0; i < img.data.length; i += 4){ const v = Math.random() * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; } nc.putImageData(img, 0, 0); }
   drawHost(now, dt);
   requestAnimationFrame(frame);
@@ -1599,33 +1818,51 @@ document.getElementById('toMenu').addEventListener('click', () => { token++; gam
 function seeded(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
 /* ================= control API for the Chert agent =================
-   deadLine.command(player, "left" | "right" | "forward" | "back" | "upstairs" | "downstairs" | "search the desk" | "<room name>" | "hello" | "strike it" | "light" | "keys")
+   deadLine.command(player, "left" | "right" | "forward" | "back" | "upstairs" | "downstairs" | "search the desk" | "<room name>" | "strike it" | "light" | "keys" | "palm")
    deadLine.signal(player, "motion" | "smile" | "light" | "metal")     camera checks from the call
-   deadLine.start(1 | 2)   deadLine.state()   deadLine.on(event => ...)
+   deadLine.start(1 | 2, { timeLeftMs })   deadLine.state()   deadLine.on(event => ...)
+   deadLine.handState() / faceState() / speaking() / hint(player, "key" | "stone")
    Events: start, round, say {who,text}, pick, entered, search, clue {player,text,private}, challenge_start/end, encounter, scare, caught,
-           sealed_room_found, unsealed, hijack, signal, ghost_moved, ghost_vanished, win, game_over   (also logged as "[deadline] {json}")
-   URL: ?view=screen | ?view=host | &autostart=2&seed=7&speed=2&choose=8&skipintro   */
+           sealed_room_found, unsealed, hijack, signal, ghost_moved, ghost_vanished, hand, gesture, glimpse, win, game_over
+   URL: ?view=screen | ?view=host | &autostart=2&seed=7&speed=2&choose=8&skipintro&mirror   */
 window.deadLine = {
   command, start, signal(player, kind){ return input(game && game.players[player], kind); }, on(fn){ listeners.push(fn); },
   say(who, text){ return say(who === 'mabel' ? 'mabel' : 'chert', String(text)); }, view:VIEW,
   choose(player, key){ return input(game && game.players[player], 'opt', key); },
   voiceStart, voiceDone, cam:camFrame,
+  handState(){ return cams.map((c, i) => ({ player:i, hand:c.hand ? { gesture:c.hand.gesture, direction:c.hand.direction, imageDirection:c.hand.imageDirection, raised:c.hand.raised, confidence:c.hand.confidence, age:performance.now() - c.handAt } : null, face:c.att, age:performance.now() - c.attAt })); },
+  faceState(){ return cams.map((c, i) => { const recent = c.mouthHistory.filter(x => performance.now() - x.t < 2500); return { player:i, face:c.att, mouth:recent.length ? Math.max(...recent.map(x => x.v)) : 0, age:performance.now() - c.attAt }; }); },
+  speaking(){ return cams.map((c, i) => { const recent = c.mouthHistory.filter(x => performance.now() - x.t < 2500); return { player:i, mouth:recent.length ? Math.max(...recent.map(x => x.v)) : 0 }; }); },
+  hint, hintInfo:(player, item) => { const p = game && game.players[player]; return p ? hintInfo(p, item) : null; },
   // Every fixed line the game can say, so the agent can record them ahead of time.
   scriptLines(){
     const L = [];
     Object.values(CH).forEach(c => c.voice && L.push(c.voice));
-    ['Oh thank goodness, you picked up. It’s me, Chert.', 'Mabel, the old operator ghost, stole my spark stone and sealed it in a room upstairs. I can barely keep this call alive.',
-     'Hang on, let me share my screen so you can see her house.', 'First, find her brass key. It’s hidden in the furniture somewhere, so search things.',
-     'Then find the room with the red glowing door, unlock it, and strike my stone. Go!', 'Your move. Pick a door, the stairs, or something to search.',
-     'It’s me! I patched into the old line. One more bar!', 'I’M BACK! Full bars! Every line in this house is ringing again!', 'I’m hearing static near one of you… careful.',
-     'Sealed! We need her key first.', 'Snap! It broke.', 'Sorry! Sorry. She got into the line again.', 'THAT’S HER KEY! Now get upstairs and find the red door!',
-     'The key fits! It’s opening…', 'Ugh, she got us. Say play again and we’ll try once more.', 'Wait… I’m picking something up on the line.',
-     'See that red door? That’s Mabel’s room! Whoever has the key, open it!', 'See that red glowing door? My stone is in there. We still need her key.',
-     'Orange, which way?', 'Blue, which way?', 'Orange and Blue, which way?', 'Warmer!', 'Colder…', 'Wait… did anyone else see that behind you?',
-     'Search the furniture for her brass key, then find the red door upstairs. Hurry, this line won’t last five minutes.',
-     'One minute before this line goes dead!', 'Twenty seconds! The line is going!', 'You stared her down! She’s gone.'].forEach(t => L.push(['chert', t]));
-    L.push(['mabel', 'Don’t look away, caller. Not even once.'], ['mabel', 'Gotcha.']);
-    ['Player 1', 'Player 2'].forEach(n => { L.push(['chert', `${n}, you saved me. Say play again if you want another round.`]); L.push(['chert', `No no no, I lost ${n}…`]); });
+    ['Oh thank goodness, you picked up! It’s me, Chert.',
+     'I’m in trouble — Mabel, the old switchboard ghost, stole my spark stone and sealed it upstairs in Hollow Line Manor.',
+     'Hang on, let me share my screen so you can see her house.',
+     'First, find her brass key. It’s hidden in the furniture somewhere, so search things.',
+     'Then find the room with the red glowing door, unlock it, and strike my stone. Go!',
+     'It’s me! I patched into the old line. One more bar!',
+     'I’M BACK! Full bars! Every line in this house is ringing again!',
+     'I’m hearing static near one of you… careful.',
+     'Sealed! We need her key first.', 'Snap! It broke.', 'Sorry! Sorry. She got into the line again.',
+     'THAT’S HER KEY! Now get upstairs and find the red door!',
+     'The key fits! It’s opening…', 'Ugh, she got us. Say play again and we’ll try once more.',
+     'Wait… I’m picking something up on the line.',
+     'See that red door? That’s Mabel’s room! Whoever has the key, open it!',
+     'See that red glowing door? My stone is in there. We still need her key.',
+     'Warmer!', 'Colder…', 'Wait… did anyone else see that behind you?',
+     'Search the furniture for her brass key, then find the red door upstairs. Hurry, this line is dying.',
+     'One minute before this line goes dead!', 'Thirty seconds! The line is going!', 'Ten seconds!',
+     'Batman, hold your hand up next to your face so I can see you.',
+     'Spider-Man, hold your hand up next to your face so I can see you.',
+     'Batman, say “here” so I can hear you.',
+     'Spider-Man, say “here” so I can hear you.',
+     'Got you both. Okay — listen closely.', 'I can see you, Batman.',
+     'Who was that? Say Batman or Spider-Man first.',
+     'We’re nearly out of time on this call. Hang up and call me right back — I’ll be here.'].forEach(t => L.push(['chert', t]));
+    ['Batman', 'Spider-Man'].forEach(n => { L.push(['chert', `${n}, you saved me. Say play again if you want another round.`]); L.push(['chert', `No no no, I lost ${n}…`]); });
     L.push(['mabel', 'He can’t help you anymore. Please hold.'], ['mabel', 'I hear you…']);
     return L;
   },
@@ -1633,11 +1870,13 @@ window.deadLine = {
   // For the agent's brain only (the page runs hidden on the agent's computer): where things are hidden.
   secrets(){ if (!game) return null; const k = game.spots.find(s => s.content === 'key'); return { stoneRoom:R[game.stone].name, keyRoom:R[k.room].name, keyIn:k.label, keyFound:game.keyFound, mabelRoom:R[game.ghost].name, cluesLeft:game.clues.slice() }; },
   state(){ if (!game) return { phase:'menu' }; return { phase:game.phase, round:game.round, signal:game.signal, over:game.over, winner:game.winner, keyFound:game.keyFound, sealedRoomFound:game.sealedSeen,
-    players:game.players.map(p => ({ player:p.id, room:R[p.room].name, floor:R[p.room].f ? 'upstairs' : 'ground', alive:p.alive, hasKey:p.key, moving:!!p.anim, picked:p.pick ? p.pick.key : null, challenge:p.challenge ? p.challenge.type : null, haunt:p.haunt ? p.haunt.mode : null,
+    players:game.players.map(p => ({ player:p.id, name:p.name, room:R[p.room].name, floor:R[p.room].f ? 'upstairs' : 'ground', alive:p.alive, hasKey:p.key, moving:!!p.anim, picked:p.pick ? p.pick.key : null, challenge:p.challenge ? p.challenge.type : null, haunt:p.haunt ? p.haunt.mode : null,
+      hint:hintInfo(p, 'key'), stoneHint:hintInfo(p, 'stone'),
       options:p.alive ? optionsFor(p).map(o => ({ key:o.key, kind:o.kind, say:o.kind === 'search' ? 'search the ' + o.spot.label : o.label.toLowerCase(), room:o.room ? R[o.room].name : null, sealed:!!(o.door && o.door.sealed), locked:!!(o.door && o.door.locked) })) : [] })) }; },
 };
-if (DEBUG) window.deadLine.debug = () => game && { stone:game.stone, keyRoom:game.keyRoom, key:game.spots.find(s => s.content === 'key').id, ghost:game.ghost, phones:game.phones, route:(pl, target) => { const p = game.players[pl], d = bfs(target); const o = optionsFor(p).filter(x => x.kind !== 'search').sort((a, b) => (d[a.room] ?? 99) - (d[b.room] ?? 99))[0]; return o && o.key; }, setGhost:r => { game.ghost = r; }, camInfo:() => ({ mp:mp ? (mp.ready ? 'ready' : mp.failed ? 'failed' : 'loading') : 'none', cams:cams.map(c => ({ live:!!camLive(c), att:c.att, attAgo:Math.round(performance.now() - c.attAt), mask:!!c.mask })) }), glimpse:pl => glimpse(game.players[pl]), haunt:(pl, dist = .5, ms = 6000) => { const p = game.players[pl]; p.haunt = { mode:'stare', dist, alpha:.9, hold:2, need:6, watching:false, result:null }; showHaunt(p, true); setTimeout(() => { p.haunt = null; showHaunt(p, false); }, ms); }, giveKey:pl => { const p = game.players[pl]; p.key = true; game.keyFound = true; renderPlayer(p); renderTop(); }, travelTo:(pl, room) => { const p = game.players[pl], ps = restPose(room, 0); p.room = room; p.prev = room; p.dir = 0; Object.assign(p.pos, ps); p.yaw = 0; p.seen.add(room); renderPlayer(p); renderTop(); } };
+if (DEBUG) window.deadLine.debug = () => game && { stone:game.stone, keyRoom:game.keyRoom, key:game.spots.find(s => s.content === 'key').id, ghost:game.ghost, phones:game.phones, route:(pl, target) => { const p = game.players[pl], d = bfs(target); const o = optionsFor(p).filter(x => x.kind !== 'search').sort((a, b) => (d[a.room] ?? 99) - (d[b.room] ?? 99))[0]; return o && o.key; }, setGhost:r => { game.ghost = r; }, camInfo:() => ({ mp:mp ? (mp.ready ? 'ready' : mp.failed ? 'failed' : 'loading') : 'none', face:!!mp?.faceReady, hands:!!mp?.handsReady, seg:!!mp?.segReady, cams:cams.map(c => ({ live:!!camLive(c), att:c.att, attAgo:Math.round(performance.now() - c.attAt), mask:!!c.mask })) }), glimpse:pl => glimpse(game.players[pl]), haunt:(pl, dist = .5, ms = 6000) => { const p = game.players[pl]; p.haunt = { mode:'caught', dist, alpha:.9, result:null }; showHaunt(p, true); setTimeout(() => { p.haunt = null; showHaunt(p, false); }, ms); }, giveKey:pl => { const p = game.players[pl]; p.key = true; game.keyFound = true; renderPlayer(p); renderTop(); }, travelTo:(pl, room) => { const p = game.players[pl], ps = restPose(room, 0); p.room = room; p.prev = room; p.dir = 0; Object.assign(p.pos, ps); p.yaw = 0; p.seen.add(room); renderPlayer(p); renderTop(); }, debugHand:(player, landmarks, score = .9) => handleHands(player, [landmarks], [{ score }]) };
 
+if (CALL) void loadMP();
 layout();
 if (params.get('autostart')) start(+params.get('autostart') === 2 ? 2 : 1);
 requestAnimationFrame(frame);

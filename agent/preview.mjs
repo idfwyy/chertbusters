@@ -5,9 +5,9 @@
 //
 //   npm run preview
 //   then type:  1 hey chert what do we do?      (lobby chat; the brain starts the game when you say ready)
-//               1 left                          Player 1 says "left"
-//               2 go check that cabinet thing   (the brain works out what Blue meant)
-//               1 !motion                       pretend Player 1 moved on camera (also !light, !smile)
+//               1 left                          Batman says "left"
+//               2 go check that cabinet thing   (the brain works out what Spider-Man meant)
+//               1 !motion                       pretend Batman moved on camera (also !light, !smile)
 //               quit
 import { createInterface } from 'node:readline';
 import { writeFile, unlink } from 'node:fs/promises';
@@ -58,7 +58,7 @@ game.events.on('event', event => {
   if (['clue', 'search', 'encounter', 'caught', 'win', 'game_over', 'challenge_start'].includes(event.type)) console.log('  [game]', JSON.stringify(event));
 });
 
-await game.say('chert', 'Oh thank goodness, you picked up! It’s me, Chert. I really need your help. Say ready when everyone’s here.');
+await game.say('chert', 'Oh thank goodness, you picked up! It’s me, Chert. I’m in trouble — Mabel stole my spark stone. Can you help me?');
 console.log('\nType as a player:  1 <what player 1 says>   2 <what player 2 says>   1 !motion   quit\n');
 
 const rl = createInterface({ input: process.stdin });

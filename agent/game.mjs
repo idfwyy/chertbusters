@@ -9,7 +9,7 @@ import sharp from 'sharp';
 
 export const WIDTH = 1280;
 export const HEIGHT = 720;
-const TYPES = { '.wasm': 'application/wasm', '.data': 'application/octet-stream', '.binarypb': 'application/octet-stream', '.tflite': 'application/octet-stream', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json' };
+const TYPES = { '.wasm': 'application/wasm', '.data': 'application/octet-stream', '.binarypb': 'application/octet-stream', '.tflite': 'application/octet-stream', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json' };
 
 const MEDIAPIPE = resolve(join(import.meta.dirname, 'node_modules', '@mediapipe'));
 
@@ -39,7 +39,11 @@ function serve(dir) {
 export async function openGame({ dir, show = false, query = '' }) {
   const server = await serve(dir);
   const { port } = server.address();
-  const args = ['--autoplay-policy=no-user-gesture-required', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'];
+  const args = [
+    '--autoplay-policy=no-user-gesture-required', '--ignore-gpu-blocklist', '--enable-gpu-rasterization',
+    // The game is a hidden or covered window. Chromium throttles those unless told not to.
+    '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding',
+  ];
   if (process.platform === 'darwin') args.push('--use-angle=metal');
   if (show && query.includes('localcam')) args.push('--use-fake-ui-for-media-stream');
   if (process.env.GAME_SOFTWARE_GL === '1') args.push('--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader');
@@ -92,9 +96,16 @@ export async function openGame({ dir, show = false, query = '' }) {
     stats: () => ({ ...counts, reset() { counts.received = 0; counts.decoded = 0; } }),
     signal: (player, kind) => call('signal', player, kind),
     say: (who, text) => call('say', who, text),
+    // Unlike say(), this waits for the page's voice-sync promise. Use it only when the
+    // next step must happen after the line is actually heard (the lobby greeting).
+    sayWait: (who, text) => page.evaluate(([w, t]) => window.deadLine.say(w, t), [who, text]).catch(() => null),
     choose: (player, key) => call('choose', player, key),
     secrets: () => page.evaluate(() => window.deadLine.secrets()).catch(() => null),
     state: () => page.evaluate(() => window.deadLine.state()),
+    handState: () => page.evaluate(() => window.deadLine.handState()).catch(() => []),
+    faceState: () => page.evaluate(() => window.deadLine.faceState()).catch(() => []),
+    speaking: () => page.evaluate(() => window.deadLine.speaking()).catch(() => []),
+    hint: (player, item) => page.evaluate(([p, i]) => window.deadLine.hint(p, i), [player, item]).catch(() => null),
     screenshot: path => page.screenshot({ path }),
     evaluate: (fn, arg) => page.evaluate(fn, arg),
     // Reload after a crash: same page, fresh game, Chert full screen again.

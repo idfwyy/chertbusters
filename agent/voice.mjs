@@ -15,6 +15,14 @@ export const SAMPLE_RATE = 24000;            // 24 kHz, 16-bit, mono from both p
 const FRAME = SAMPLE_RATE / 50;              // 20 ms
 const CACHE = join(dirname(fileURLToPath(import.meta.url)), 'voice-cache');
 
+/** Removes a speaker label the model sometimes writes into its own line. */
+export function cleanLine(text) {
+  return String(text || '')
+    .replace(/^\s*(chert|mabel)\s*[:\-–—]\s*/i, '')
+    .replaceAll(/\s+/g, ' ')
+    .trim();
+}
+
 // ElevenLabs voice IDs. Pick your own in ElevenLabs (Voices > ... > Copy voice ID) and put them in .env.local.
 const ELEVEN = {
   chert: process.env.CHERT_VOICE_ID || 'TxGEqnHWrfWFTfGW9XjX',
@@ -42,17 +50,27 @@ async function eleven(who, text, file) {
 
 async function openai(who, text, file) {
   const v = OPENAI[who] || OPENAI.chert;
-  const res = await fetch('https://api.openai.com/v1/audio/speech', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: process.env.TTS_MODEL || 'gpt-4o-mini-tts', voice: v.voice, input: text, instructions: v.instructions, response_format: file ? 'wav' : 'pcm' }),
-  });
-  if (!res.ok) throw new Error(`OpenAI speech ${res.status}: ${(await res.text()).slice(0, 160)}`);
-  return { res, ext: 'wav' };
+  const models = [...new Set([process.env.TTS_MODEL || 'gpt-4o-mini-tts', 'gpt-4o-mini-tts', 'tts-1'])];
+  let last = new Error('OpenAI speech failed');
+  for (const model of models) {
+    const body = { model, voice: v.voice, input: text, response_format: file ? 'wav' : 'pcm' };
+    if (model !== 'tts-1') body.instructions = v.instructions;
+    const res = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return { res, ext: file ? 'wav' : 'pcm' };
+    last = new Error(`OpenAI speech ${res.status}: ${(await res.text()).slice(0, 160)}`);
+    if (![400, 404].includes(res.status)) break;
+  }
+  throw last;
 }
 
 /** Speech for one line. file=false: raw 24 kHz PCM for the call. file=true: an audio file for local playback. */
 export async function synth(who, text, file = false) {
+  text = cleanLine(text);
+  if (!text) throw new Error('empty line');
   const providers = [];
   if (process.env.ELEVENLABS_API_KEY) providers.push(eleven);
   if (process.env.OPENAI_API_KEY) providers.push(openai);
@@ -72,7 +90,7 @@ async function writeCache(who, text, pcm) { try { await mkdir(CACHE, { recursive
 export async function prewarm(lines) {
   let made = 0;
   const todo = [];
-  for (const [who, text] of lines) if (!(await readCache(who, text))) todo.push([who, text]);
+  for (const [who, text] of lines) { const line = cleanLine(text); if (line && !(await readCache(who, line))) todo.push([who, line]); }
   const worker = async () => {
     while (todo.length) {
       const [who, text] = todo.shift();
@@ -97,6 +115,7 @@ export class Voice {
   }
 
   say(who, text, { id = 0, urgent = false } = {}) {
+    text = cleanLine(text);
     if (this.closed || !text) { this.hooks.onDone?.(id); return; }
     const line = { who, text, id, urgent, at: Date.now() };
     if (urgent) {
