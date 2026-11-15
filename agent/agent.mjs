@@ -28,7 +28,7 @@ const RAN = ['picked', 'passed', 'failed'];
 
 const AGREE = /\b(yes|yeah|yep|sure|okay|ok|we'?re in|i'?m in|let'?s (play|go)|play again|ready|we can help|sounds good)\b/;
 const ASK = /\b(chert|where|what|how|why|can you|do you|hint|help|stuck|which)\b/;
-const NAME_RE = [/\b(batman|bruce)\b/, /\b(spider[- ]?man|peter)\b/];
+const NAME_RE = [/\b(batman|bruce|batty|bat)\b/, /\b(spider[- ]?man|peter|spidey|spider)\b/];
 
 const GREETING = 'Oh thank goodness, you picked up! It’s me, Chert. I’m in trouble — Mabel, the old switchboard ghost, stole my spark stone and sealed it upstairs in Hollow Line Manor. I can barely keep this line alive. Can you help me?';
 const REPROMPT = 'Are you still there? I really need your help.';
@@ -192,11 +192,7 @@ const agent = defineAgent({
     async function attribute(text) {
       for (const [i, re] of NAME_RE.entries()) if (re.test(text.toLowerCase())) return i;
       if (players === 1) return 0;
-      const states = await game.speaking().catch(() => []);
-      const moving = (states || []).filter(s => (s.mouth || 0) > 0.012).sort((a, b) => (b.mouth || 0) - (a.mouth || 0));
-      if (!moving.length) return -1;
-      if (moving.length > 1 && moving[0].mouth < moving[1].mouth * 1.35) return -1;
-      return moving[0].player;
+      return -1;
     }
 
     async function onText(identity, raw) {
@@ -214,8 +210,7 @@ const agent = defineAgent({
       }
       // A direct "where is the key/stone?" gets a deterministic hint from the page, so the
       // close/far → room → furniture progression is guaranteed rather than left to the model.
-      if (/\b(where|hint|stuck|help me find)\b/.test(t) && /\b(key|stone|door|room)\b/.test(t)) {
-        if (player < 0) { void game.say('chert', 'Who’s asking? Say Batman or Spider-Man first.'); return; }
+      if (player >= 0 && /\b(where|hint|stuck|help me find)\b/.test(t) && /\b(key|stone|door|room)\b/.test(t)) {
         const item = /\b(stone|door)\b/.test(t) ? 'stone' : 'key';
         const h = await game.hint(player, item);
         if (h?.text) { void game.say('chert', h.text); brain.note(`Hint for ${NAMES[player]}: ${h.text}`); return; }
@@ -225,10 +220,10 @@ const agent = defineAgent({
       let result = 'no player';
       if (player >= 0 && player < players) {
         void game.heard(player, text);
-        result = await game.command(player, t);
+        result = await game.command(player, t.replace(NAME_RE[player], '').trim());
         if (RAN.includes(result)) { brain.note(`${NAMES[player]} said "${text}" -> ${result}`); return; }
       } else if (players > 1) {
-        void game.say('chert', 'Who was that? Say Batman or Spider-Man first.');
+        void game.prompt('Say BATMAN or SPIDER-MAN first');
         return;
       }
       // Not a plain command: let Chert's brain work out what they meant, or answer them.

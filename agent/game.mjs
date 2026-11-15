@@ -90,6 +90,7 @@ export async function openGame({ dir, show = false, query = '' }) {
     cam: (player, jpg) => call('cam', player, jpg),
     command: (player, text) => call('command', player, text),
     heard: (player, text) => call('heard', player, text),
+    prompt: text => call('prompt', text),
     voiceStart: (id, ms) => call('voiceStart', id, ms),
     voiceDone: id => call('voiceDone', id),
     scriptLines: () => page.evaluate(() => window.deadLine.scriptLines()).catch(() => []),

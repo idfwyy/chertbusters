@@ -1822,6 +1822,7 @@ function seeded(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.
 window.deadLine = {
   command, start, signal(player, kind){ return input(game && game.players[player], kind); }, on(fn){ listeners.push(fn); },
   say(who, text){ return say(who === 'mabel' ? 'mabel' : 'chert', String(text)); }, view:VIEW,
+  prompt(text){ narr(String(text), 2000); },
   choose(player, key){ return input(game && game.players[player], 'opt', key); },
   voiceStart, voiceDone, cam:camFrame,
   handState(){ return cams.map((c, i) => ({ player:i, hand:c.hand ? { gesture:c.hand.gesture, direction:c.hand.direction, imageDirection:c.hand.imageDirection, raised:c.hand.raised, confidence:c.hand.confidence, age:performance.now() - c.handAt } : null, face:c.att, age:performance.now() - c.attAt })); },
@@ -1854,7 +1855,6 @@ window.deadLine = {
      'Batman, say “here” so I can hear you.',
      'Spider-Man, say “here” so I can hear you.',
      'Got you both. Okay — listen closely.', 'I can see you, Batman.',
-     'Who was that? Say Batman or Spider-Man first.',
      'We’re nearly out of time on this call. Hang up and call me right back — I’ll be here.'].forEach(t => L.push(['chert', t]));
     ['Batman', 'Spider-Man'].forEach(n => { L.push(['chert', `${n}, you saved me. Say play again if you want another round.`]); L.push(['chert', `No no no, I lost ${n}…`]); });
     L.push(['mabel', 'He can’t help you anymore. Please hold.'], ['mabel', 'I hear you…']);
