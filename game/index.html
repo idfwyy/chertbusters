@@ -146,19 +146,16 @@ body.view-call #top .round{font-size:17px}
 body.view-call #timer{font-size:18px;min-width:180px}
 body.view-call #timer.danger{color:#ff5a4a;animation:timerPulse .8s infinite}
 @keyframes timerPulse{50%{opacity:.45}}
-body.view-call #objs span{font-size:15px;padding:6px 9px}
-body.view-call .mapw{font-size:11px}
-body.view-call .map{grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,14px)}
-body.view-call .map div{font-size:10px;line-height:12px}
-body.view-call .sig-wrap{font-size:11px}
+body.view-call #objs{display:none}
+body.view-call .sig-wrap{font-size:11px;margin-left:auto}
 body.view-call .maps{display:none}
-body.view-call .half .tag{font-size:23px;padding:6px 14px;top:14px;left:16px}
-body.view-call .where{font-size:42px;right:20px;top:10px}
+body.view-call .half .tag{font-size:32px;font-weight:bold;color:#fff;background:#080609;padding:6px 14px;top:12px;left:16px}
+body.view-call .where{font-size:27px;left:16px;right:auto;top:62px;text-align:left}
 body.view-call .where small{font-size:15px}
-body.view-call .items{top:58px}
+body.view-call .items{top:112px}
 body.view-call .items span{font-size:16px;padding:4px 9px}
 body.view-call .opts{left:50%;right:auto;transform:translateX(-50%);width:min(600px,95%);display:grid;grid-template-columns:1fr 1fr;gap:10px;bottom:18px}
-body.view-call .opt{font-size:21px;padding:11px 13px;justify-content:flex-start}
+body.view-call .opt{font-size:22px;padding:11px 13px;justify-content:flex-start}
 body.view-call .opt small{font-size:13px}
 body.view-call .opt .arr{font-size:22px}
 body.view-call .card{width:min(560px,92%);padding:22px 26px;top:42%}
@@ -182,6 +179,8 @@ body.view-call .handchip{top:auto;bottom:250px}
 .handchip b{color:var(--spark);font-weight:400}
 .handchip i{display:block;height:5px;width:70px;border-radius:3px;background:rgba(239,231,216,.18);overflow:hidden}
 .handchip i em{display:block;height:100%;width:0;background:var(--spark);transition:width .08s linear}
+.guide{position:absolute;right:12px;top:166px;padding:6px 8px;background:rgba(0,0,0,.85);color:#fff;font-size:14px;z-index:3}
+body:not(.view-call) .guide{display:none}
 #switching{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;background:#08080a}
 #switching canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.55;image-rendering:pixelated}
 #switching span{position:relative;font-size:26px;letter-spacing:.12em;text-transform:uppercase;padding:10px 18px;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:4px}
@@ -685,7 +684,7 @@ function buildHalves(){
   halvesEl.innerHTML = '';
   game.players.forEach(p => {
     const el = document.createElement('div'); el.className = 'half';
-    el.innerHTML = `<canvas class="haunt" width="640" height="656" hidden></canvas><canvas class="bubble" width="120" height="120" hidden></canvas><span class="tag"><b style="background:${PCOL[p.id]}"></b>${p.name}</span><span class="where"></span><div class="items"></div><div class="opts"></div><div class="handchip"><b></b><i><em></em></i></div>`;
+    el.innerHTML = `<canvas class="haunt" width="640" height="656" hidden></canvas><canvas class="bubble" width="120" height="120" hidden></canvas><span class="tag"><b style="background:${PCOL[p.id]}"></b>${p.name}</span><span class="where"></span><div class="items"></div><div class="guide">☝ walk &nbsp; ✊ search &nbsp; ✋ stop her &nbsp; 👍 start</div><div class="opts"></div><div class="handchip"><b></b><i><em></em></i></div>`;
     halvesEl.appendChild(el);
     p.half = { el, haunt:el.querySelector('.haunt'), bubble:el.querySelector('.bubble'), where:el.querySelector('.where'), items:el.querySelector('.items'), opts:el.querySelector('.opts'), handchip:el.querySelector('.handchip'), card:null, toast:null, dead:null, banner:null };
     renderPlayer(p);
@@ -705,7 +704,11 @@ function renderPlayer(p){
 function renderOpts(p){
   const box = p.half.opts; box.innerHTML = '';
   if (!p.alive || game.over) return;
-  optionsFor(p).forEach(o => {
+  const all = optionsFor(p);
+  const visible = CALL && all.length > 4 ? [...all.filter(o => o.kind === 'search').slice(0, 1), ...all.filter(o => o.kind !== 'search')].slice(0, 4) : all;
+  const target = all.find(o => o.key === p.handPreview);
+  if (CALL && target && !visible.includes(target)) visible[visible.length - 1] = target;
+  visible.forEach(o => {
     const b = document.createElement('button'); b.type = 'button';
     let cls = 'opt ' + o.kind;
     if (p.pick && p.pick.key === o.key) cls += ' picked';
