@@ -3,6 +3,7 @@
 // Audio: Chert's voice (ElevenLabs, OpenAI as backup). Brain: a ChatGPT model (brain.mjs) for anything that
 // isn't a plain command. Chert sends one bridge participant: one mixed voice track and one FaceTime window
 // capture. The window is split into caller tiles on this side, so each tile controls its own half.
+import './logging.mjs';
 import { fileURLToPath } from 'node:url';
 import { writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -98,7 +99,8 @@ const agent = defineAgent({
     };
     function startGame(asked = 1, sourceText = '') {
       if (phase === 'playing' || (sourceText && isRecentEcho(sourceText))) return false;
-      const n = Math.max(1, Math.min(2, FORCED_PLAYERS || tileCount || voices() || asked || 1));
+      const n = playerCount();
+      console.log('[chertbusters] player count selected', { players:n, detectedTiles:tileCount, audioTracks:voices(), forced:FORCED_PLAYERS || null, source:FORCED_PLAYERS ? 'PLAYERS override' : tileCount ? 'caller video tiles' : 'audio fallback; group size unavailable' });
       const left = Math.max(1000, 300_000 - (bridgeAt ? Date.now() - bridgeAt : 0) - 15_000);
       players = n; phase = 'playing';
       for (const k of Object.keys(active)) delete active[k];
@@ -154,6 +156,10 @@ const agent = defineAgent({
       if (!text) return;
       const t = text.toLowerCase();
       if (isEcho(text)) { console.log(`[heard] ${identity}: (ignored echo) ${text}`); return; }
+      if (phase === 'lobby' && /^(?:(?:okay|ok|yes|yeah)[,\s]+)?(?:i(?:'m| am)|we(?:'re| are))?\s*ready[.!\s]*$/i.test(text)) {
+        if (startGame(playerCount(), text)) void brain.situation('game_started');
+        return;
+      }
       const player = mixed ? await attribute(text) : slotOf(identity);
       if (phase !== 'playing') {
         void brain.hear(player, text, 'lobby');
@@ -252,7 +258,7 @@ const agent = defineAgent({
       }
       else if (event.type === 'challenge_start') { active[event.player] = { kind: event.challenge, since: Date.now(), base: null }; brain.note(`${NAMES[event.player] || 'P' + (event.player + 1)} challenge: ${event.challenge}`); }
       else if (event.type === 'challenge_end') { delete active[event.player]; brain.note(`${NAMES[event.player] || 'P' + (event.player + 1)} ${event.passed ? 'passed' : 'failed'} ${event.challenge}`); }
-      else if (event.type === 'gesture' && event.action === 'ready' && phase === 'lobby') { void brain.situation('A caller gave a thumbs-up to start.'); }
+      else if (event.type === 'gesture' && event.action === 'ready' && phase === 'lobby') { if (startGame(playerCount())) void brain.situation('game_started'); }
       else if (event.type === 'scream') { voice.say('mabel', 'Aah!', { urgent:true }); brain.note(`Mabel caught ${NAMES[event.player] || 'a player'}.`); }
       else if (event.type === 'entered') brain.note(`${NAMES[event.player] || 'P' + (event.player + 1)} entered the ${event.room}`);
       else if (event.type === 'search') brain.note(`${NAMES[event.player] || 'P' + (event.player + 1)} searched the ${event.spot}: ${event.found || 'nothing'}`);

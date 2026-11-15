@@ -4,6 +4,7 @@
 // It checks the runtime and the local files the page needs. It never prints a
 // secret. A missing item is a hard failure except for .env.local and the keys,
 // which are warnings so the check is useful before setup is finished.
+import './logging.mjs';
 import { access, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';

@@ -9,6 +9,7 @@
 //               2 go check that cabinet thing   (the brain works out what Spider-Man meant)
 //               1 !motion                       pretend Batman moved on camera (also !light, !smile)
 //               quit
+import './logging.mjs';
 import { createInterface } from 'node:readline';
 import { writeFile, unlink } from 'node:fs/promises';
 import { spawn } from 'node:child_process';

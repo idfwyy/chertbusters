@@ -51,6 +51,14 @@ With `&localcam` the Mac webcam becomes Batman's camera, so you can test hand ge
 ### Mouse-only dry run
 
 Run `npm run dry-run` for a square, two-player window with no camera, countdown, or ghost attacks. Run `npm run dry-run -- --camera` to enable the webcam for the left player only. Both modes use an arrow pad and one circle-icon search button per player. Each room contains exactly one searchable object. The compact map highlights the current room; purple rooms contain stairs.
+Preview and dry-run windows use Vite for frontend hot reload. Saving files under `game/` updates the open window without restarting the launcher. HTML and inline script changes reload the page and reset the current game. Dry runs preserve the active screen in the current browser tab: gameplay returns to gameplay, and intermission returns to intermission. The agent reconnects its page-event bridge after each reload. Real calls continue to use the static server without a development dependency at runtime.
+
+Gameplay uses warm fixture lighting, localized cool window fill, and a low ambient level. Flashlights cast soft shadows using one 512×512 shadow map per player; room point lights do not cast shadows. Shared procedural surface maps, baked contact shadows beneath searchable furniture, and small room-local dust batches provide detail without full-screen post-processing. Development frame timings depend on the GPU, browser, and window size.
+
+The room renderer pauses while the full-screen host covers gameplay, and hidden host animation work is skipped during gameplay. Split-screen views reuse shadow maps generated for the first view each frame. Repeated primitive geometry is cached across room builds, and camera projection matrices update only when the viewport aspect changes. The flashlight is aimed at door height with a narrow, soft-edged beam to emphasize the central route.
+
+In the mouse-only dry run, the Test scene dropdown sits beside Back to intermission. It offers eight essential previews: gameplay, intermission, ghost encounter, blackout, strike the stone, camera scare, win, and loss. Each selection starts a fresh page to cancel outstanding timers and animations. Camera scare requires `--camera`; without a live camera, the preview shows an explanatory message instead.
+
 
 
 ## Real call
