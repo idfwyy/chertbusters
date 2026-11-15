@@ -482,14 +482,14 @@ async function movePlayer(p, o, t){
     if (o.kind === 'search'){ await doSearch(p, o.spot, t); alive(t); }
     else {
       if (o.kind === 'door' && o.door.sealed){
-        if (!p.key){ toast(p, 'Chert', 'It’s sealed with Mabel’s dial lock. You need her brass key.'); say('chert', 'Sealed! We need her key first.'); await wait(1400); p.look = null; return; }
+        if (!p.key){ toast(p, 'Chert', 'It’s sealed with Mabel’s dial lock. You need her brass key.'); await wait(1400); p.look = null; return; }
         o.door.sealed = false; updateLocks(); unlockFx(o.door); emit('unsealed', { player:p.id });
         await say('chert', 'The key fits! It’s opening…'); alive(t);
       }
       if (o.kind === 'door' && o.door.locked){
         const ok = await challenge(p, 'metal'); alive(t);
         if (!ok){ toast(p, 'Chert', 'The padlock holds. Try another way.'); await wait(800); return; }
-        o.door.locked = false; updateLocks(); say('chert', 'Snap! It broke.');
+        o.door.locked = false; updateLocks();
       }
       await travel(p, o); alive(t);
       if (game.ghost !== p.room || performance.now() - game.startedAt < GHOST_GRACE){ await resolveRoom(p, t); alive(t); }
@@ -510,8 +510,8 @@ async function resolveRoom(p, t){
   if (p.prev !== id){
     const target = p.key ? game.stone : game.keyRoom;
     const d0 = bfs(p.prev)[target], d1 = bfs(id)[target];
-    if (d1 < d0){ heatChip(p, 'Warmer'); await say('chert', 'Warmer!'); alive(t); }
-    else if (d1 > d0){ heatChip(p, 'Colder'); await say('chert', 'Colder…'); alive(t); }
+    if (d1 < d0) heatChip(p, 'Warmer');
+    else if (d1 > d0) heatChip(p, 'Colder');
   }
   if (game.phones.includes(id) && !game.phoneUsed[id]){
     game.phoneUsed[id] = true;
@@ -603,11 +603,9 @@ async function ghostPhase(t){
   // A glimpse: for about a second, one player's own camera shows Mabel standing behind them.
   if (game.round >= 2 && game.glimpses < 2 && rand() < .25){
     const p = pick(live.filter(camAvailable));
-    if (p && glimpse(p)){ game.glimpses++; await wait(1400); say('chert', 'Wait… did anyone else see that behind you?'); }
+    if (p && glimpse(p)) game.glimpses++;
   }
-  if (game.round % 4 === 0 && !game.keyFound && game.clues.length && live.length){ const p = pick(live); await say('chert', 'Wait… I’m picking something up on the line.'); alive(t); sendClue(p, game.clues.shift(), 'Chert overheard it on the line'); }
-  else if (game.round >= 4 && rand() < .2){ await hijack(); alive(t); }
-  else if (live.some(p => neighbors(p.room).some(n => n.room === game.ghost)) && rand() < .4) say('chert', 'I’m hearing static near one of you… careful.');
+  if (game.round % 4 === 0 && !game.keyFound && game.clues.length && live.length){ const p = pick(live); sendClue(p, game.clues.shift(), 'Chert overheard it on the line'); }
   for (const p of game.players) if (p.alive && p.room === game.ghost && !game.over && !p.busy){
     p.busy = true; renderOpts(p);
     toast(p, 'Chert', 'She’s coming into your room!');
@@ -615,7 +613,6 @@ async function ghostPhase(t){
   }
   await wait(400);
 }
-async function hijack(){ chert.hijack = performance.now() + 4800 / SPEED; staticBurst(); emit('hijack'); if (CALL) await switchScreen(true, 'Signal hijacked'); await say('mabel', 'He can’t help you anymore. Please hold.', 3200); chert.hijack = 0; if (CALL) await switchScreen(false); await say('chert', 'Sorry! Sorry. She got into the line again.'); }
 function sendClue(p, text, source){ toast(p, 'Chert · iMessage', text, `Sent privately to ${p.name}. ${source}.`); emit('clue', { player:p.id, text, private:true }); }
 async function win(p){
   game.over = true; game.phase = 'over'; game.winner = p.id; chert.restored = performance.now(); chert.mood = 'happy'; game.signal = MAXSIG; renderTop();
@@ -1840,14 +1837,10 @@ window.deadLine = {
      'Then find the room with the red glowing door, unlock it, and strike my stone. Go!',
      'It’s me! I patched into the old line. One more bar!',
      'I’M BACK! Full bars! Every line in this house is ringing again!',
-     'I’m hearing static near one of you… careful.',
-     'Sealed! We need her key first.', 'Snap! It broke.', 'Sorry! Sorry. She got into the line again.',
      'THAT’S HER KEY! Now get upstairs and find the red door!',
      'The key fits! It’s opening…', 'Ugh, she got us. Say play again and we’ll try once more.',
-     'Wait… I’m picking something up on the line.',
      'See that red door? That’s Mabel’s room! Whoever has the key, open it!',
      'See that red glowing door? My stone is in there. We still need her key.',
-     'Warmer!', 'Colder…', 'Wait… did anyone else see that behind you?',
      'Search the furniture for her brass key, then find the red door upstairs. Hurry, this line is dying.',
      'One minute before this line goes dead!', 'Thirty seconds! The line is going!', 'Ten seconds!',
      'Batman, hold your hand up next to your face so I can see you.',
@@ -1857,7 +1850,7 @@ window.deadLine = {
      'Got you both. Okay — listen closely.', 'I can see you, Batman.',
      'We’re nearly out of time on this call. Hang up and call me right back — I’ll be here.'].forEach(t => L.push(['chert', t]));
     ['Batman', 'Spider-Man'].forEach(n => { L.push(['chert', `${n}, you saved me. Say play again if you want another round.`]); L.push(['chert', `No no no, I lost ${n}…`]); });
-    L.push(['mabel', 'He can’t help you anymore. Please hold.'], ['mabel', 'I hear you…']);
+    L.push(['mabel', 'I hear you…']);
     return L;
   },
   heard(player, text){ const p = game && game.players[player]; if (!p || !p.half) return; if (p.half.heard) p.half.heard.remove(); const el = document.createElement('div'); el.className = 'heard'; el.textContent = `“${String(text).slice(0, 60)}”`; p.half.el.appendChild(el); p.half.heard = el; setTimeout(() => { if (p.half.heard === el){ el.remove(); p.half.heard = null; } }, 2500); },
