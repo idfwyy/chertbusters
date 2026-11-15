@@ -389,7 +389,7 @@ function input(p, kind, value){
   const opts = optionsFor(p);
   let o = null;
   if (kind === 'dir') o = opts.find(x => x.kind === 'door' && x.rel === value);
-  else if (kind === 'stairs') o = opts.find(x => x.kind === 'stairs');
+  else if (kind === 'stairs') o = opts.find(x => x.kind === 'stairs' && (value == null || x.up === value));
   else if (kind === 'search'){ const ss = opts.filter(x => x.kind === 'search'); if (value) o = ss.find(x => x.spot === value); else if (ss.length){ const i = p.pick ? ss.findIndex(x => x.key === p.pick.key) : -1; o = ss[(i + 1) % ss.length]; } }
   else if (kind === 'opt') o = opts.find(x => x.key === value);
   if (!o) return 'blocked';
@@ -410,20 +410,28 @@ function lookTarget(p, o){
 }
 function command(player, text){
   const p = game && game.players[player]; if (!p) return 'ignored';
-  const t = String(text || '').toLowerCase();
+  const t = String(text || '').toLowerCase().trim().replace(/[.!?]+$/, '').trim();
   if (/\bstrike\b/.test(t)) return input(p, 'strike');
   if (p.challenge && /\b(palm|ward|push|stop her)\b/.test(t)) return input(p, 'palm');
   if (p.challenge && /\b(light|lights|lamp)\b/.test(t)) return input(p, 'light');
   if (p.challenge && /\b(key|keys|metal|coin|spoon)\b/.test(t)) return input(p, 'metal');
-  if (/\b(upstairs|downstairs|stairs|staircase|climb|up|down)\b/.test(t)) return input(p, 'stairs');
+  const opts = optionsFor(p);
+  const sealed = opts.find(x => x.kind === 'door' && (x.door.sealed || x.room === game.stone));
+  if (sealed && /\b(red|sealed)\s+door\b/.test(t)) return input(p, 'opt', sealed.key);
+  const roomDoor = opts.find(x => x.kind === 'door' && t.includes(R[x.room].name.toLowerCase().split(/[\s’']/)[0]));
+  if (roomDoor) return input(p, 'opt', roomDoor.key);
+  const stairs = /\b(upstairs|downstairs|stairs|staircase|climb)\b/.test(t);
+  if (stairs || /^(up|down)$/.test(t)){
+    const up = /\b(upstairs|up)\b/.test(t), down = /\b(downstairs|down)\b/.test(t);
+    if (up && down) return 'blocked';
+    return input(p, 'stairs', up ? true : down ? false : null);
+  }
   const spots = game.spots.filter(s => s.room === p.room && !s.searched);
   const sp = spots.find(s => s.words.some(w => new RegExp('\\b' + w + '\\b').test(t)));
   if (sp) return input(p, 'search', sp);
   if (/\b(search|check|open|look)\b/.test(t)) return input(p, 'search');
   const words = [[/\b(forward|straight|ahead)\b/, 0], [/\bright\b/, 1], [/\b(back|behind|around)\b/, 2], [/\bleft\b/, 3]];
   for (const [re, rel] of words) if (re.test(t)) return input(p, 'dir', rel);
-  const o = optionsFor(p).find(x => x.kind === 'door' && t.includes(R[x.room].name.toLowerCase().split(/[\s’']/)[0]));
-  if (o) return input(p, 'opt', o.key);
   return 'ignored';
 }
 
@@ -1502,6 +1510,9 @@ function handleHands(player, hands, handedness){
   const now = performance.now();
   const best = hands.map((lm, i) => ({ ...classifyHand(lm, { handednessScore:handedness[i]?.score || .8, mirror:MIRROR }), at:now }))
     .sort((a, b) => b.confidence - a.confidence)[0];
+  const downStairs = p && !p.challenge && best?.gesture === 'point' && best.direction === 'down' &&
+    optionsFor(p).some(o => o.kind === 'stairs' && !o.up);
+  if (downStairs && !best.clearDown){ c.hold = null; updateHandChip(p, null); previewGesture(p, { gesture:'none' }); return; }
   if (!best || (best.gesture === 'none' && !best.raised)){
     if (!c.noHandSince) c.noHandSince = now;
     if (now - c.noHandSince > 400) { c.hold = null; c.fired = null; }
@@ -1532,8 +1543,9 @@ function handleHands(player, hands, handedness){
   const key = `${best.gesture}|${best.direction || ''}`;
   if (!c.hold || c.hold.key !== key){ c.hold = { key, since:now }; updateHandChip(p, best, 0); return; }
   const held = now - c.hold.since;
-  updateHandChip(p, best, held / HAND_HOLD);
-  if (held < HAND_HOLD) return;
+  const holdTime = HAND_HOLD + (downStairs ? 300 : 0);
+  updateHandChip(p, best, held / holdTime);
+  if (held < holdTime) return;
   if (c.fired?.key === key) return;   // hold the same gesture all you like: change it to fire again
   c.fired = { key };
   c.hold = null;

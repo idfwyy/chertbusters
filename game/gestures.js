@@ -115,6 +115,7 @@ export function classifyHand(landmarks, { handednessScore = 1, mirror = false } 
     gesture,
     direction,
     imageDirection,
+    clearDown: imageDirection === 'down' && landmarks[8].y - landmarks[5].y >= 2 * Math.abs(landmarks[8].x - landmarks[5].x),
     raised: handRaised(landmarks),
     extended,
     center: { x: (landmarks[0].x + landmarks[5].x + landmarks[9].x + landmarks[13].x + landmarks[17].x) / 5, y: (landmarks[0].y + landmarks[5].y + landmarks[9].y + landmarks[13].y + landmarks[17].y) / 5 },
