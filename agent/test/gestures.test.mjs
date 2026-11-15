@@ -40,9 +40,24 @@ test('fist', () => {
   const r = classifyHand(hand({ index: false, middle: false, ring: false, pinky: false }));
   assert.equal(r.gesture, 'fist');
 });
+test('resting thumb along index finger is a fist', () => {
+  const lm = hand({ index: false, middle: false, ring: false, pinky: false, thumb: true });
+  lm[3] = { x: 0.4, y: 0.52 };
+  lm[4] = { x: 0.42, y: 0.49 };
+  assert.equal(classifyHand(lm).gesture, 'fist');
+});
+
+test('thumb close to index joint is a fist even when above the fingertips', () => {
+  const lm = hand({ index: false, middle: false, ring: false, pinky: false, thumb: true });
+  lm[3] = { x: 0.4, y: 0.52 };
+  lm[4] = { x: 0.42, y: 0.415 };
+  assert.equal(classifyHand(lm).gesture, 'fist');
+});
 
 test('thumbs up', () => {
-  const r = classifyHand(hand({ index: false, middle: false, ring: false, pinky: false, thumb: true }));
+  const lm = hand({ index: false, middle: false, ring: false, pinky: false, thumb: true });
+  lm[4] = { x: 0.37, y: 0.35 };
+  const r = classifyHand(lm);
   assert.equal(r.gesture, 'thumbs_up');
 });
 

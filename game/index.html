@@ -179,8 +179,7 @@ body.view-call .handchip{top:auto;bottom:250px}
 .handchip b{color:var(--spark);font-weight:400}
 .handchip i{display:block;height:5px;width:70px;border-radius:3px;background:rgba(239,231,216,.18);overflow:hidden}
 .handchip i em{display:block;height:100%;width:0;background:var(--spark);transition:width .08s linear}
-.guide{position:absolute;right:12px;top:166px;padding:6px 8px;background:rgba(0,0,0,.85);color:#fff;font-size:14px;z-index:3}
-body:not(.view-call) .guide{display:none}
+.guide{position:absolute;right:12px;top:166px;max-width:calc(100% - 40px);padding:6px 8px;background:rgba(0,0,0,.85);color:#fff;font-size:14px;line-height:1.4;z-index:3}
 #switching{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;background:#08080a}
 #switching canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.55;image-rendering:pixelated}
 #switching span{position:relative;font-size:26px;letter-spacing:.12em;text-transform:uppercase;padding:10px 18px;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:4px}
@@ -386,7 +385,7 @@ function input(p, kind, value){
     if (s.passOn.includes(kind)){ p.challenge.finish(true); return 'passed'; }
     return 'ignored';
   }
-  if (game.phase === 'intro' || !p.alive || p.busy || p.anim) return 'ignored';
+  if (!p.alive || p.busy || p.anim) return 'ignored';
   const opts = optionsFor(p);
   let o = null;
   if (kind === 'dir') o = opts.find(x => x.kind === 'door' && x.rel === value);
@@ -684,7 +683,7 @@ function buildHalves(){
   halvesEl.innerHTML = '';
   game.players.forEach(p => {
     const el = document.createElement('div'); el.className = 'half';
-    el.innerHTML = `<canvas class="haunt" width="640" height="656" hidden></canvas><canvas class="bubble" width="120" height="120" hidden></canvas><span class="tag"><b style="background:${PCOL[p.id]}"></b>${p.name}</span><span class="where"></span><div class="items"></div><div class="guide">☝ walk &nbsp; ✊ search &nbsp; ✋ stop her &nbsp; 👍 start</div><div class="opts"></div><div class="handchip"><b></b><i><em></em></i></div>`;
+    el.innerHTML = `<canvas class="haunt" width="640" height="656" hidden></canvas><canvas class="bubble" width="120" height="120" hidden></canvas><span class="tag"><b style="background:${PCOL[p.id]}"></b>${p.name}</span><span class="where"></span><div class="items"></div><div class="guide">☝ point sideways to walk · up = forward/upstairs · down = back/downstairs · ✊ search · ✋ stop her · 👍 start</div><div class="opts"></div><div class="handchip"><b></b><i><em></em></i></div>`;
     halvesEl.appendChild(el);
     p.half = { el, haunt:el.querySelector('.haunt'), bubble:el.querySelector('.bubble'), where:el.querySelector('.where'), items:el.querySelector('.items'), opts:el.querySelector('.opts'), handchip:el.querySelector('.handchip'), card:null, toast:null, dead:null, banner:null };
     renderPlayer(p);
@@ -719,7 +718,7 @@ function renderOpts(p){
     const sub = o.kind === 'search' ? 'the ' + o.spot.label : R[o.room].name;
     b.innerHTML = `<span class="arr">${o.arrow}</span><span>${o.label}</span><small></small>`;
     b.querySelector('small').textContent = sub;
-    b.disabled = game.phase === 'intro' || p.busy || !!p.anim || !!p.challenge;
+    b.disabled = p.busy || !!p.anim || !!p.challenge;
     b.addEventListener('click', () => input(p, 'opt', o.key));
     box.appendChild(b);
   });
@@ -1461,7 +1460,7 @@ function updateHandChip(p, g, progress = 0){
   chip.querySelector('i em').style.width = `${Math.round(Math.max(0, Math.min(1, progress)) * 100)}%`;
 }
 function previewGesture(p, g){
-  if (!p?.half || !game || game.over || game.phase === 'intro' || !p.alive || p.busy || p.anim){ if (p && p.handPreview){ p.handPreview = null; renderOpts(p); } return; }
+  if (!p?.half || !game || game.over || !p.alive || p.busy || p.anim || p.challenge){ if (p && p.handPreview){ p.handPreview = null; renderOpts(p); } return; }
   let key = null;
   if (g.gesture === 'point' && g.direction){
     const rel = { up:0, right:1, down:2, left:3 }[g.direction];
@@ -1482,14 +1481,15 @@ function fireGesture(p, g){
     if (p.challenge.type === 'strike' && g.gesture === 'fist') return input(p, 'act');
     return;
   }
-  if (game.phase === 'intro' || p.busy || p.anim) return;
+  if (p.busy || p.anim) return;
   if (g.gesture === 'point' && g.direction){
     const rel = { up:0, right:1, down:2, left:3 }[g.direction];
     const opts = optionsFor(p);
     const stair = (g.direction === 'up' || g.direction === 'down') ? opts.find(o => o.kind === 'stairs' && (g.direction === 'up' ? o.up : !o.up)) : null;
     const o = stair || opts.find(x => x.kind === 'door' && x.rel === rel);
     if (o) return input(p, 'opt', o.key);
-    return;
+    banner(p, 'No door that way', '', 1800);
+    return 'blocked';
   }
   if (g.gesture === 'fist'){
     const ss = optionsFor(p).filter(o => o.kind === 'search');

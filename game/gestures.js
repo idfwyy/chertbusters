@@ -86,8 +86,10 @@ export function classifyHand(landmarks, { handednessScore = 1, mirror = false } 
   };
   const fingersOut = ['index', 'middle', 'ring', 'pinky'].filter(f => extended[f]).length;
   const thumbTip = landmarks[4];
-  const thumbMcp = landmarks[2];
-  const thumbUp = thumbTip.y < thumbMcp.y - 0.04 && Math.abs(thumbTip.y - thumbMcp.y) > Math.abs(thumbTip.x - thumbMcp.x) * 0.55;
+  const handSize = distance(landmarks[0], landmarks[9]);
+  const thumbUp = thumbTip.y < landmarks[5].y &&
+    [8, 12, 16, 20].every(i => landmarks[i].y - thumbTip.y >= 0.15 * handSize) &&
+    distance(thumbTip, landmarks[6]) > 0.6 * handSize;
 
   let gesture = 'none';
   let imageDirection = null;
