@@ -1448,7 +1448,8 @@ function attention(f){
 
 function handLabel(g){
   if (!g || g.gesture === 'none') return '';
-  return `${GESTURE_LABELS[g.gesture] || ''}${g.direction ? ` ${g.direction}` : ''}`;
+  const icon = { point:'☝', fist:'✊', open_palm:'✋', thumbs_up:'👍' }[g.gesture] || '';
+  return `${icon} ${GESTURE_LABELS[g.gesture] || ''}${g.direction ? ` ${g.direction}` : ''}`;
 }
 function updateHandChip(p, g, progress = 0){
   const chip = p?.half?.handchip;
@@ -1478,7 +1479,7 @@ function fireGesture(p, g){
   if (!p || !p.alive || !game || game.over) return;
   if (p.challenge){
     if (p.challenge.type === 'ward' && g.gesture === 'open_palm') return input(p, 'palm');
-    if (p.challenge.type === 'strike' && (g.gesture === 'fist' || g.gesture === 'point')) return input(p, 'act');
+    if (p.challenge.type === 'strike' && g.gesture === 'fist') return input(p, 'act');
     return;
   }
   if (game.phase === 'intro' || p.busy || p.anim) return;
@@ -1526,7 +1527,7 @@ function handleHands(player, hands, handedness){
     else if (now - c.hold.since >= HAND_HOLD){ emit('gesture', { player, action:'ready', gesture:'thumbs_up' }); c.hold = null; c.fired = { key }; }
     return;
   }
-  if (p.haunt) { updateHandChip(p, null); return; }
+  if (p.haunt && !p.challenge) { updateHandChip(p, null); return; }
   previewGesture(p, best);
   const key = `${best.gesture}|${best.direction || ''}`;
   if (!c.hold || c.hold.key !== key){ c.hold = { key, since:now }; updateHandChip(p, best, 0); return; }
