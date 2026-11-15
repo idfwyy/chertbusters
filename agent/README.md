@@ -48,6 +48,11 @@ A window shows exactly what the callers would see. Type what a player says:
 
 With `&localcam` the Mac webcam becomes Batman's camera, so you can test hand gestures. The preview opens with `localcam=1`; add `&mirror` to the URL if you are testing a mirrored webcam.
 
+### Mouse-only dry run
+
+Run `npm run dry-run` for a square, two-player window with no camera, countdown, or ghost attacks. Run `npm run dry-run -- --camera` to enable the webcam for the left player only. Both modes use an arrow pad and one circle-icon search button per player. Each room contains exactly one searchable object. The compact map highlights the current room; purple rooms contain stairs.
+
+
 ## Real call
 
 Terminal 1:

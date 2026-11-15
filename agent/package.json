@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node --env-file=.env.local agent.mjs start",
     "preview": "node --env-file-if-exists=.env.local preview.mjs",
+    "dry-run": "node dry-run.mjs",
     "preflight": "node preflight.mjs",
     "check": "node --check agent.mjs && node --check game.mjs && node --check voice.mjs && node --check listen.mjs && node --check tiles.mjs && node --check preview.mjs && node --check brain.mjs && node --check preflight.mjs && node check-page.mjs",
     "test": "node --test test/*.test.mjs"

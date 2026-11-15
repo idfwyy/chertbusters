@@ -155,9 +155,9 @@ body.view-call .where small{font-size:15px}
 body.view-call .items{top:112px}
 body.view-call .items span{font-size:16px;padding:4px 9px}
 body.view-call .opts{left:50%;right:auto;transform:translateX(-50%);width:min(600px,95%);display:grid;grid-template-columns:1fr 1fr;gap:10px;bottom:18px}
-body.view-call .opt{font-size:22px;padding:11px 13px;justify-content:flex-start}
-body.view-call .opt small{font-size:13px}
-body.view-call .opt .arr{font-size:22px}
+body.view-call .opt{font-size:28px;min-height:78px;padding:12px 16px;display:grid;grid-template-columns:32px 1fr;gap:4px 10px;text-align:left;background:rgba(8,6,10,.96)}
+body.view-call .opt small{font-size:21px;grid-column:2;letter-spacing:0;text-transform:none;color:#dfd6c9;white-space:normal;overflow-wrap:anywhere}
+body.view-call .opt .arr{font-size:30px;grid-row:1 / 3}
 body.view-call .card{width:min(560px,92%);padding:22px 26px;top:42%}
 body.view-call .card h3{font-size:50px}
 body.view-call .card p{font-size:23px}
@@ -183,6 +183,37 @@ body.view-call .handchip{top:auto;bottom:250px}
 #switching{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;background:#08080a}
 #switching canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.55;image-rendering:pixelated}
 #switching span{position:relative;font-size:26px;letter-spacing:.12em;text-transform:uppercase;padding:10px 18px;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:4px}
+.minimap{position:absolute;right:18px;top:18px;width:114px;height:114px;padding:10px;box-sizing:border-box;background:rgba(9,10,13,.88);border:1px solid #ae99746b;border-radius:12px;box-shadow:0 4px 18px #0008;z-index:3;pointer-events:none}
+.minimap svg{display:block;width:100%;height:100%}
+.minimap h3,.minimap .legend{display:none}
+body.view-call .guide{display:none}
+body.view-call .where{font-size:32px;max-width:calc(100% - 185px)}
+body.view-call .where small{font-size:21px}
+body.view-call .items span{font-size:22px}
+body.view-call #top .round{font-size:24px}
+body.view-call #timer{font-size:24px}
+body.view-call .sig-wrap{font-size:18px}
+body.view-call .card .act{font-size:28px;min-height:64px;padding:16px 24px}
+body.view-call .toast{left:50%;right:auto;top:50%;bottom:auto;transform:translate(-50%,-50%);width:86%;max-width:560px;box-sizing:border-box;font-size:44px;line-height:1.2;text-align:center;padding:12px 16px}
+body.view-call .toast b{font-size:23px;text-align:left;margin-bottom:6px}
+body.view-call .toast em{font-size:23px;text-align:center}
+body.view-call .btn{font-size:26px;min-height:60px}
+body.dry-run #host,body.dry-run #callCap,body.dry-run #narr{display:none!important}
+body.dry-run #end{background:rgba(5,4,7,.94)}
+body.dry-run #screen{height:1280px}
+body.dry-run #stage3d{height:1216px}
+body.view-call .opts{width:304px;grid-template-columns:repeat(4,64px);grid-template-rows:repeat(3,64px);gap:10px;bottom:26px}
+body.view-call .opt{width:64px;height:64px;min-height:0;padding:0;display:flex;align-items:center;justify-content:center;border-radius:4px;border:1px solid var(--line);background:#100d13;box-shadow:none;font:34px var(--display);color:var(--ink)}
+body.view-call .opt.door{font-size:46px}
+body.view-call .opt:not(:disabled):hover{border-color:var(--spark);background:#302018}
+body.view-call .opt:not(:disabled):active{transform:translateY(2px)}
+body.view-call .opt.search{grid-column:4;grid-row:2;border-radius:50%;border:1px dashed var(--ecto);color:var(--ecto)}
+body.view-call .opt.stairs{grid-column:4;border-style:dashed;font-size:30px}
+body.view-call .opt small,body.view-call .opt .label{display:none}
+body.view-call .opt .arr{font-size:46px;line-height:1}
+body.view-call .opt:disabled{opacity:1;background:#151218;color:#625a66;border-color:#302936}
+body.view-call .opt:disabled .arr{color:#625a66}
+body.view-call .bubble{top:190px}
 @media (prefers-reduced-motion: reduce){#narr,#caption,#flash{transition:none}}
 </style>
 
@@ -243,7 +274,8 @@ import { classifyHand, GESTURE_LABELS } from './gestures.js';
 /* ================= config ================= */
 const params = new URLSearchParams(location.search);
 const SPEED = Math.max(.25, +(params.get('speed') || 1));
-const VIEW = params.get('view') || 'both';
+const DRY_RUN = params.has('dryrun');
+const VIEW = DRY_RUN ? 'call' : params.get('view') || 'both';
 const DEBUG = params.has('debug');
 const CALL = VIEW === 'call';
 const MIRROR = params.has('mirror');
@@ -252,6 +284,7 @@ const HAND_HOLD = +(params.get('handhold') || 450);
 const GHOST_GRACE = 45000;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 document.body.classList.add('view-' + VIEW);
+document.body.classList.toggle('dry-run', DRY_RUN);
 const PCOL = ['#f2b45a', '#8fc7ff'];
 const KEYMAP = [{ ArrowUp:['dir',0], ArrowRight:['dir',1], ArrowDown:['dir',2], ArrowLeft:['dir',3], ',':['stairs'], '.':['search'], ' ':['act'] },
                 { w:['dir',0], d:['dir',1], s:['dir',2], a:['dir',3], q:['stairs'], r:['search'], e:['act'] }];
@@ -263,24 +296,24 @@ const MAXSIG = 6, POOL = 8;
 /* ================= house ================= */
 // spot: [label, voice words, wall (0 N,1 E,2 S,3 W), offset along wall]
 const ROOMS = [
-  { id:'kitchen', name:'Kitchen', f:0, r:0, c:0, paper:'#5a5840', lamp:0xfff0c8, floor:'tile', spots:[['stove',['stove','oven'],0,-1.8],['pantry',['pantry','cupboard'],3,-1.8]], phone:[1,-1.9] },
-  { id:'dining', name:'Dining Room', f:0, r:0, c:1, paper:'#5a2a2e', lamp:0xffc890, spots:[['sideboard',['sideboard','cabinet'],1,0],['fireplace',['fireplace','fire'],0,-1.8]], phone:[2,1.9], chand:true },
-  { id:'conserv', name:'Conservatory', f:0, r:0, c:2, paper:'#3e5040', lamp:0xd8e8ff, floor:'tile', spots:[['flower pots',['pot','pots','plant','plants','flower','flowers'],3,0],['birdcage',['birdcage','cage','bird'],0,1.9]], phone:[2,-1.9] },
-  { id:'library', name:'Library', f:0, r:1, c:0, paper:'#4a3226', lamp:0xffbe7a, spots:[['bookshelf',['bookshelf','shelf','books','book'],1,0],['reading chair',['chair','armchair','cushion','reading'],0,1.9]], phone:[2,1.9] },
-  { id:'hall', name:'Grand Hall', f:0, r:1, c:1, paper:'#5e4630', lamp:0xffc884, spots:[['grandfather clock',['clock','grandfather'],1,-1.9],['chest',['chest','trunk'],1,1.9]], phone:[0,1.9], chand:true, stairs:'up' },
-  { id:'parlor', name:'Parlor', f:0, r:1, c:2, paper:'#6a3236', lamp:0xffc08a, spots:[['fireplace',['fireplace','fire'],1,0],['sofa',['sofa','couch','cushions','cushion'],0,-1.8]], phone:[2,1.9], noWin:[1] },
-  { id:'study', name:'Study', f:0, r:2, c:0, paper:'#3f5446', lamp:0xffcf8a, spots:[['desk',['desk','drawer','drawers'],3,1.35],['safe',['safe'],2,-1.9]], phone:[1,1.9] },
-  { id:'foyer', name:'Foyer', f:0, r:2, c:1, paper:'#5e4c38', lamp:0xffc884, spots:[['coat rack',['coat','coats','rack'],2,1.9],['side table',['table','vase'],0,-1.9]], phone:[2,-1.9], front:true, chand:true },
-  { id:'switch', name:'Switchboard Room', f:0, r:2, c:2, paper:'#3c4652', lamp:0xffb070, spots:[['switchboard',['switchboard','board','plugs','cords'],1,0],['mail slots',['mail','slots','letters','cubbies'],2,1.6]], phone:[0,1.9], noWin:[1] },
-  { id:'nursery', name:'Nursery', f:1, r:0, c:0, paper:'#6a5560', lamp:0xffd1a8, spots:[['toy chest',['toy','toys','chest'],3,-1.8],['crib',['crib','cradle'],0,-1.8]], phone:[1,1.9] },
-  { id:'master', name:'Master Bedroom', f:1, r:0, c:1, paper:'#4a3040', lamp:0xffc0a0, spots:[['bed',['bed','pillow','pillows','mattress'],1,0],['wardrobe',['wardrobe','closet'],0,-1.8]], phone:[2,1.9], canopy:true },
-  { id:'bath', name:'Bathroom', f:1, r:0, c:2, paper:'#4a5a5a', lamp:0xe8f0ff, floor:'tile', spots:[['bathtub',['bathtub','tub','bath'],3,0],['medicine cabinet',['cabinet','medicine','mirror','sink'],0,-1.8]], phone:[2,1.9] },
-  { id:'guest', name:'Guest Room', f:1, r:1, c:0, paper:'#54503a', lamp:0xffd09a, spots:[['bed',['bed','pillow','pillows'],1,0],['trunk',['trunk','suitcase'],3,1.8]], phone:[0,1.9] },
-  { id:'landing', name:'Landing', f:1, r:1, c:1, paper:'#5a4632', lamp:0xffc884, spots:[['linen chest',['chest','linen'],2,1.9],['portrait',['portrait','painting'],1,-1.9]], phone:[0,1.9], stairs:'down' },
-  { id:'gallery', name:'Gallery', f:1, r:1, c:2, paper:'#3a3040', lamp:0xffd8b0, spots:[['painting',['painting','frame','canvas'],1,0],['statue',['statue','bust'],0,1.9]], phone:[2,-1.9], noWin:[1] },
-  { id:'music', name:'Music Room', f:1, r:2, c:0, paper:'#3a4a5a', lamp:0xffc890, spots:[['piano',['piano','keys'],1,0],['gramophone',['gramophone','record','records'],2,-1.6]], phone:[0,1.9] },
-  { id:'sewing', name:'Sewing Room', f:1, r:2, c:1, paper:'#6a5048', lamp:0xffd0a0, spots:[['sewing table',['sewing','machine','table'],3,0],['mannequin',['mannequin','dress'],2,1.8]], phone:[0,-1.9] },
-  { id:'servants', name:'Servants’ Quarters', f:1, r:2, c:2, paper:'#4a4438', lamp:0xe0d0a0, spots:[['bunk bed',['bunk','bed','beds'],1,0],['footlocker',['footlocker','locker','box'],2,1.6]], phone:[0,1.9], noWin:[1] },
+  { id:'kitchen', name:'Kitchen', f:0, r:0, c:0, paper:'#5a5840', lamp:0xfff0c8, floor:'tile', spots:[['stove',['stove','oven'],0,-1.8]], phone:[1,-1.9] },
+  { id:'dining', name:'Dining Room', f:0, r:0, c:1, paper:'#5a2a2e', lamp:0xffc890, spots:[['sideboard',['sideboard','cabinet'],1,0]], phone:[2,1.9], chand:true },
+  { id:'conserv', name:'Conservatory', f:0, r:0, c:2, paper:'#3e5040', lamp:0xd8e8ff, floor:'tile', spots:[['flower pots',['pot','pots','plant','plants','flower','flowers'],3,0]], phone:[2,-1.9] },
+  { id:'library', name:'Library', f:0, r:1, c:0, paper:'#4a3226', lamp:0xffbe7a, spots:[['bookshelf',['bookshelf','shelf','books','book'],1,0]], phone:[2,1.9] },
+  { id:'hall', name:'Grand Hall', f:0, r:1, c:1, paper:'#5e4630', lamp:0xffc884, spots:[['grandfather clock',['clock','grandfather'],1,-1.9]], phone:[0,1.9], chand:true, stairs:'up' },
+  { id:'parlor', name:'Parlor', f:0, r:1, c:2, paper:'#6a3236', lamp:0xffc08a, spots:[['fireplace',['fireplace','fire'],1,0]], phone:[2,1.9], noWin:[1] },
+  { id:'study', name:'Study', f:0, r:2, c:0, paper:'#3f5446', lamp:0xffcf8a, spots:[['desk',['desk','drawer','drawers'],3,1.35]], phone:[1,1.9] },
+  { id:'foyer', name:'Foyer', f:0, r:2, c:1, paper:'#5e4c38', lamp:0xffc884, spots:[['coat rack',['coat','coats','rack'],2,1.9]], phone:[2,-1.9], front:true, chand:true },
+  { id:'switch', name:'Switchboard Room', f:0, r:2, c:2, paper:'#3c4652', lamp:0xffb070, spots:[['switchboard',['switchboard','board','plugs','cords'],1,0]], phone:[0,1.9], noWin:[1] },
+  { id:'nursery', name:'Nursery', f:1, r:0, c:0, paper:'#6a5560', lamp:0xffd1a8, spots:[['toy chest',['toy','toys','chest'],3,-1.8]], phone:[1,1.9] },
+  { id:'master', name:'Master Bedroom', f:1, r:0, c:1, paper:'#4a3040', lamp:0xffc0a0, spots:[['bed',['bed','pillow','pillows','mattress'],1,0]], phone:[2,1.9], canopy:true },
+  { id:'bath', name:'Bathroom', f:1, r:0, c:2, paper:'#4a5a5a', lamp:0xe8f0ff, floor:'tile', spots:[['bathtub',['bathtub','tub','bath'],3,0]], phone:[2,1.9] },
+  { id:'guest', name:'Guest Room', f:1, r:1, c:0, paper:'#54503a', lamp:0xffd09a, spots:[['bed',['bed','pillow','pillows'],1,0]], phone:[0,1.9] },
+  { id:'landing', name:'Landing', f:1, r:1, c:1, paper:'#5a4632', lamp:0xffc884, spots:[['linen chest',['chest','linen'],2,1.9]], phone:[0,1.9], stairs:'down' },
+  { id:'gallery', name:'Gallery', f:1, r:1, c:2, paper:'#3a3040', lamp:0xffd8b0, spots:[['painting',['painting','frame','canvas'],1,0]], phone:[2,-1.9], noWin:[1] },
+  { id:'music', name:'Music Room', f:1, r:2, c:0, paper:'#3a4a5a', lamp:0xffc890, spots:[['piano',['piano','keys'],1,0]], phone:[0,1.9] },
+  { id:'sewing', name:'Sewing Room', f:1, r:2, c:1, paper:'#6a5048', lamp:0xffd0a0, spots:[['sewing table',['sewing','machine','table'],3,0]], phone:[0,-1.9] },
+  { id:'servants', name:'Servants’ Quarters', f:1, r:2, c:2, paper:'#4a4438', lamp:0xe0d0a0, spots:[['bunk bed',['bunk','bed','beds'],1,0]], phone:[0,1.9], noWin:[1] },
 ];
 const R = Object.fromEntries(ROOMS.map(r => [r.id, r]));
 const EDGE_LIST = [['foyer','hall'],['foyer','study'],['foyer','switch'],['hall','dining'],['hall','parlor'],['kitchen','dining'],['conserv','parlor'],['library','kitchen'],['library','study'],['parlor','switch'],
@@ -366,13 +399,13 @@ function challenge(p, type){
     const spec = CH[type]; let done = false, tm = 0;
     const finish = ok => { if (done) return; done = true; clearTimeout(tm); p.challenge = null; hideCard(p); emit('challenge_end', { player:p.id, challenge:type, passed:ok }); resolve(ok); };
     p.challenge = { type, spec, armed:false, start:performance.now() + 1e9, dur:spec.secs * 1000 / SPEED, finish };
-    showCard(p, spec.title, spec.body, spec.danger ? 'danger' : spec.good ? 'good' : '', spec.passOn.length > 0 && !CALL);
+    showCard(p, spec.title, DRY_RUN && type === 'strike' ? 'Click the button to restore the line.' : spec.body, spec.danger ? 'danger' : spec.good ? 'good' : '', spec.passOn.length > 0 && (!CALL || DRY_RUN));
     if (type === 'light' && p.fuse){ p.fuse = false; renderPlayer(p); setTimeout(() => { toast(p, 'Chert', 'Your fuse kicks in. Lights back on.'); finish(true); }, 1400 / SPEED); return; }
     const arm = () => {
       if (done) return;
       p.challenge.armed = true; p.challenge.start = performance.now();
       emit('challenge_start', { player:p.id, challenge:type, seconds:spec.secs, ask:spec.body });
-      tm = setTimeout(() => finish(spec.timeoutPass), spec.secs * 1000 / SPEED);
+      if (!DRY_RUN) tm = setTimeout(() => finish(spec.timeoutPass), spec.secs * 1000 / SPEED);
     };
     if (spec.voice) say(spec.voice[0], spec.voice[1], 0, { urgent:true }).then(() => wait(300)).then(arm); else arm();
   });
@@ -452,7 +485,7 @@ async function start(n, opts = {}){
   menuEl.hidden = true; endEl.hidden = true; chert.mood = 'weak'; chert.hijack = 0; chert.restored = 0; hostBanner(null);
   renderTop(); emit('start', { players:n });
   try {
-    if (!opts.skipIntro && !params.has('skipintro')){
+    if (!DRY_RUN && !opts.skipIntro && !params.has('skipintro')){
       if (CALL){
         showHostFull(true);
         await say('chert', 'Mabel, the old operator ghost, stole my spark stone and sealed it in a room upstairs. I can barely keep this call alive.'); alive(t);
@@ -471,8 +504,11 @@ async function start(n, opts = {}){
       }
       missionEl.hidden = true;
     }
-    if (CALL && !hostEl.hidden){ await switchScreen(false); alive(t); }
-    narr('Welcome to Hollow Line Manor. Please hold…', 2400); await wait(1800); alive(t);
+    if (DRY_RUN) hostEl.hidden = true;
+    else {
+      if (CALL && !hostEl.hidden){ await switchScreen(false); alive(t); }
+      narr('Welcome to Hollow Line Manor. Please hold…', 2400); await wait(1800); alive(t);
+    }
     game.phase = 'choose'; game.players.forEach(renderOpts);
     while (!game.over){
       await wait(9000); alive(t);
@@ -498,9 +534,9 @@ async function movePlayer(p, o, t){
         o.door.locked = false; updateLocks();
       }
       await travel(p, o); alive(t);
-      if (game.ghost !== p.room || performance.now() - game.startedAt < GHOST_GRACE){ await resolveRoom(p, t); alive(t); }
+      if (DRY_RUN || game.ghost !== p.room || performance.now() - game.startedAt < GHOST_GRACE){ await resolveRoom(p, t); alive(t); }
     }
-    if (!game.over && p.alive && game.ghost === p.room && performance.now() - game.startedAt >= GHOST_GRACE){ await encounter(p, t); alive(t); }
+    if (!DRY_RUN && !game.over && p.alive && game.ghost === p.room && performance.now() - game.startedAt >= GHOST_GRACE){ await encounter(p, t); alive(t); }
   } catch (e) { if (e.message !== 'stopped') console.error(e); }
   finally {
     p.busy = false; p.pick = null; p.look = null; p.lookPitch = -.04;
@@ -519,7 +555,7 @@ async function resolveRoom(p, t){
     if (d1 < d0) heatChip(p, 'Warmer');
     else if (d1 > d0) heatChip(p, 'Colder');
   }
-  if (game.phones.includes(id) && !game.phoneUsed[id]){
+  if (!DRY_RUN && game.phones.includes(id) && !game.phoneUsed[id]){
     game.phoneUsed[id] = true;
     ring(); if (world.phones[id]) world.phones[id].ring = performance.now() + 6000 / SPEED;
     await wait(1200); if (world.phones[id]) world.phones[id].ring = 0;
@@ -553,7 +589,7 @@ async function doSearch(p, s, t){
     p.fuse = true; renderPlayer(p); banner(p, 'A spare fuse', 'It’ll save you in a blackout.', 1800); await wait(1600);
   } else if (s.content === 'note' && game.clues.length){
     sendClue(p, game.clues.shift(), `Scrawled on a note in the ${s.label}`); await wait(1800);
-  } else if (s.content === 'scare'){
+  } else if (s.content === 'scare' && !DRY_RUN){
     scare(p); await wait(1300); alive(t);
     const n = neighbors(p.room).map(x => x.room).filter(r => r !== 'foyer'); if (n.length && rand() < .5){ game.ghost = pick(n); toast(p, 'Chert', 'She knows you’re here. She’s close.'); }
     else toast(p, 'Chert', 'She was hiding in there. She’s gone. For now.');
@@ -566,6 +602,7 @@ async function doSearch(p, s, t){
   await animate(p, [from], yawOf(p.dir), 2);
 }
 async function encounter(p, t){
+  if (DRY_RUN) return;
   if (performance.now() - game.startedAt < GHOST_GRACE) return;
   narr(pick(['“Connecting you now…”', '“Your call cannot be completed.”', '“Please hold.”']), 2200);
   emit('encounter', { player:p.id, room:R[p.room].name }); scream();
@@ -596,6 +633,7 @@ async function caughtFlash(p){
 }
 function vanish(){ const live = game.players.filter(x => x.alive); const far = ROOMS.map(r => r.id).filter(id => id !== 'foyer' && live.every(p => (bfs(p.room)[id] ?? 9) >= 2)); if (far.length) game.ghost = pick(far); emit('ghost_vanished'); }
 async function ghostPhase(t){
+  if (DRY_RUN) return;
   // Ghost movement is independent of either player's move.
   if (performance.now() - game.startedAt < GHOST_GRACE){ emit('ghost_moved'); return; }
   const live = game.players.filter(x => x.alive), occupied = new Set(live.map(p => p.room));
@@ -624,7 +662,7 @@ async function win(p){
   game.over = true; game.phase = 'over'; game.winner = p.id; chert.restored = performance.now(); chert.mood = 'happy'; game.signal = MAXSIG; renderTop();
   if (world.stone){ world.stone.userData.burst = performance.now(); stoneBurst(world.stone); } flash(); spark(); sparkBurst();
   emit('win', { player:p.id });
-  if (CALL){
+  if (CALL && !DRY_RUN){
     await wait(1800); await switchScreen(true, 'Line restored');
     chert.restored = performance.now(); sparkBurst();
     hostBanner('Line restored', `${p.name} found the spark stone`);
@@ -659,10 +697,11 @@ async function lose(why){
 let captionTimer = 0, narrTimer = 0, callCapTimer = 0;
 // With &voicesync=1 (the agent and the preview set it), a line waits for the real voice: the agent reports when the
 // audio starts (captions and Chert's mouth begin then) and when it has finished playing (the game moves on then).
-const VOICE_SYNC = params.has('voicesync');
+const VOICE_SYNC = !DRY_RUN && params.has('voicesync');
 let sayId = 0;
 const pendingSay = new Map();
 function say(who, text, ms, opts = {}){
+  if (DRY_RUN) return Promise.resolve();
   ms = ms || Math.max(1500, text.length * 64);
   if (!VOICE_SYNC){ emit('say', { who, text }); showLine(who, text, ms); return wait(ms); }
   const id = ++sayId;
@@ -691,9 +730,11 @@ function buildHalves(){
   halvesEl.innerHTML = '';
   game.players.forEach(p => {
     const el = document.createElement('div'); el.className = 'half';
-    el.innerHTML = `<canvas class="haunt" width="640" height="656" hidden></canvas><canvas class="bubble" width="120" height="120" hidden></canvas><span class="tag"><b style="background:${PCOL[p.id]}"></b>${p.name}</span><span class="where"></span><div class="items"></div><div class="guide">☝ point sideways to walk · up = forward/upstairs · down = back/downstairs · ✊ search · ✋ stop her · 👍 start</div><div class="opts"></div><div class="handchip"><b></b><i><em></em></i></div>`;
+    el.innerHTML = `<canvas class="haunt" width="640" height="656" hidden></canvas><canvas class="bubble" width="120" height="120" hidden></canvas><span class="tag"><b style="background:${PCOL[p.id]}"></b>${p.name}</span><span class="where"></span><div class="items"></div><div class="guide">☝ point sideways to walk · up = forward · down = back · ✊ search · ✋ stairs / stop her · 👍 start</div><div class="opts"></div><div class="handchip"><b></b><i><em></em></i></div>`;
     halvesEl.appendChild(el);
     p.half = { el, haunt:el.querySelector('.haunt'), bubble:el.querySelector('.bubble'), where:el.querySelector('.where'), items:el.querySelector('.items'), opts:el.querySelector('.opts'), handchip:el.querySelector('.handchip'), card:null, toast:null, dead:null, banner:null };
+    const map = document.createElement('aside'); map.className = 'minimap'; map.setAttribute('aria-label', `${p.name} room map`);
+    el.appendChild(map); p.half.map = map;
     renderPlayer(p);
   });
 }
@@ -707,33 +748,61 @@ function renderPlayer(p){
     p.half.el.appendChild(d); p.half.dead = d;
   }
   renderOpts(p);
+  renderMinimap(p);
 }
 function renderOpts(p){
   const box = p.half.opts; box.innerHTML = '';
   if (!p.alive || game.over) return;
   const all = optionsFor(p);
-  const visible = CALL && all.length > 4 ? [...all.filter(o => o.kind === 'search').slice(0, 1), ...all.filter(o => o.kind !== 'search')].slice(0, 4) : all;
-  const target = all.find(o => o.key === p.handPreview);
-  if (CALL && target && !visible.includes(target)) visible[visible.length - 1] = target;
+  const visible = all;
   visible.forEach(o => {
     const b = document.createElement('button'); b.type = 'button';
-    let cls = 'opt ' + o.kind;
+    let cls = `opt ${o.kind}`;
     if (p.pick && p.pick.key === o.key) cls += ' picked';
     if (p.handPreview === o.key) cls += ' target';
     if (o.room === game.ghost && o.kind !== 'search') cls += ' static';
     if (o.kind === 'door' && o.door.sealed) cls += ' sealed'; else if (o.kind === 'door' && o.door.locked) cls += ' locked';
     b.className = cls;
-    const sub = o.kind === 'search' ? 'the ' + o.spot.label : R[o.room].name;
-    b.innerHTML = `<span class="arr">${o.arrow}</span><span>${o.label}</span><small></small>`;
-    b.querySelector('small').textContent = sub;
+    const sub = o.kind === 'search' ? `Search the ${o.spot.label}` : `${o.label}: ${R[o.room].name}`;
+    b.title = sub; b.setAttribute('aria-label', sub);
+    b.innerHTML = `<span class="arr" aria-hidden="true">${o.kind === 'search' ? '◎' : o.kind === 'stairs' ? (o.up ? '⇡' : '⇣') : ['↑','→','↓','←'][o.rel]}</span>`;
+    if (o.kind === 'door'){ const positions = [[2,1],[3,2],[2,3],[1,2]]; const [col,row] = positions[o.rel]; b.style.gridColumn = col; b.style.gridRow = row; }
+    if (o.kind === 'stairs') b.style.gridRow = o.up ? 1 : 3;
     b.disabled = p.busy || !!p.anim || !!p.challenge;
     b.addEventListener('click', () => input(p, 'opt', o.key));
     box.appendChild(b);
   });
+  if (CALL){
+    const occupied = new Set(all.filter(o => o.kind === 'door').map(o => o.rel));
+    for (let rel = 0; rel < 4; rel++) if (!occupied.has(rel)){
+      const b = document.createElement('button'), positions = [[2,1],[3,2],[2,3],[1,2]];
+      b.type = 'button'; b.className = 'opt door'; b.disabled = true;
+      b.textContent = ['↑','→','↓','←'][rel]; b.setAttribute('aria-label', 'No door in this direction');
+      b.style.gridColumn = positions[rel][0]; b.style.gridRow = positions[rel][1]; box.appendChild(b);
+    }
+    if (!all.some(o => o.kind === 'search')){
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'opt search'; b.disabled = true; b.textContent = '◎'; b.setAttribute('aria-label', 'Room already searched'); box.appendChild(b);
+    }
+  }
 }
+// Use actual door connections and house coordinates; live play hides unexplored room names.
+function renderMinimap(p){
+  if (!p.half?.map) return;
+  const floor = R[p.room].f, rooms = ROOMS.filter(r => r.f === floor);
+  const known = r => DRY_RUN || p.seen.has(r.id);
+  const cx = r => 38 + r.c * 72, cy = r => 32 + r.r * 64;
+  const paths = edges.filter(e => R[e.a].f === floor).map(e => `<path d="M${cx(R[e.a])} ${cy(R[e.a])}L${cx(R[e.b])} ${cy(R[e.b])}" stroke="${e.sealed ? '#ff7666' : '#928574'}" stroke-width="5"${e.locked ? ' stroke-dasharray="5 4"' : ''}/>`).join('');
+  const cells = rooms.map(r => {
+    const here = r.id === p.room, sealed = game.sealedSeen && r.id === game.stone;
+    const fill = r.stairs ? '#9070c8' : here ? PCOL[p.id] : known(r) ? '#65616a' : '#242229';
+    return `<rect x="${cx(r) - 22}" y="${cy(r) - 22}" width="44" height="44" rx="7" fill="${fill}" stroke="${here ? PCOL[p.id] : sealed ? '#ff7666' : '#ffffff25'}" stroke-width="${here ? 6 : 1}"/>`;
+  }).join('');
+  p.half.map.innerHTML = `<svg viewBox="0 0 220 192" role="img" aria-label="Room map. Purple rooms have stairs. You are in ${R[p.room].name}.">${paths}${cells}</svg>`;
+}
+
 function renderTop(){
   const leftS = Math.max(0, Math.ceil((game.clockEnd - performance.now()) * SPEED / 1000));
-  document.getElementById('round').textContent = `Line dies in ${Math.floor(leftS / 60)}:${String(leftS % 60).padStart(2, '0')}`;
+  document.getElementById('round').textContent = DRY_RUN ? 'Dry run · mouse only' : `Line dies in ${Math.floor(leftS / 60)}:${String(leftS % 60).padStart(2, '0')}`;
   const bars = Array.from({ length:MAXSIG }, (_, i) => `<span class="${i < game.signal ? 'on' : ''}" style="height:${4 + (i + 1) * 3}px"></span>`).join('');
   document.getElementById('sig').innerHTML = bars; document.getElementById('hostSig').innerHTML = bars;
   const seen = new Set(game.players.flatMap(p => [...p.seen]));
@@ -746,12 +815,13 @@ function renderTop(){
   }
   const done = { key:game.keyFound || game.players.some(p => p.key), room:game.sealedSeen, stone:game.winner !== null };
   document.querySelectorAll('#objs span').forEach(s => s.classList.toggle('done', !!done[s.dataset.o]));
+  game.players.forEach(renderMinimap);
 }
 const HINT = { 'Please hold…':'Chert is watching your camera. Freeze.', 'Blackout':'Turn on a light, or say LIGHT ON.', 'Smile for the operator':'Not a sound. Chert can hear you.', 'Padlocked':'Say KEYS and hold them up.', 'She’s reaching for you':'Hold your palm up to the camera.', 'The spark stone!':'Say STRIKE IT.' };
 function showCard(p, title, body, cls, act){
   hideCard(p);
   const c = document.createElement('div'); c.className = 'card ' + cls;
-  c.innerHTML = `<h3></h3><p></p>${act ? `<button class="act" type="button">${p.id === 0 ? 'Space' : 'E'} · do it</button>` : ''}<div class="bar"><i></i></div><small>${CALL ? (HINT[cls === 'danger' ? title : title] || '') : 'Camera check in the real call'}</small>`;
+  c.innerHTML = `<h3></h3><p></p>${act ? `<button class="act" type="button">${DRY_RUN ? 'Click to ' + (title === 'The spark stone!' ? 'strike the stone' : 'continue') : (p.id === 0 ? 'Space' : 'E') + ' · do it'}</button>` : ''}<div class="bar"><i></i></div><small>${DRY_RUN ? '' : CALL ? (HINT[title] || '') : 'Camera check in the real call'}</small>`;
   c.querySelector('h3').textContent = title; c.querySelector('p').textContent = body;
   if (act) c.querySelector('.act').addEventListener('click', () => input(p, 'act'));
   p.half.el.appendChild(c); p.half.card = c; p.half.cardBar = c.querySelector('.bar i');
@@ -771,14 +841,14 @@ function toast(p, from, text, note){
   p.half.el.appendChild(el); p.half.toast = el;
   setTimeout(() => { if (p.half.toast === el){ el.remove(); p.half.toast = null; } }, 4200 / SPEED);
 }
-function showEnd(title, text){ timerText.textContent = title; if (CALL){ game.players.forEach(renderOpts); return; } document.getElementById('endTitle').textContent = title; document.getElementById('endText').textContent = text; endEl.hidden = false; game.players.forEach(renderOpts); }
+function showEnd(title, text){ timerText.textContent = title; if (CALL && !DRY_RUN){ game.players.forEach(renderOpts); return; } document.getElementById('endTitle').textContent = title; document.getElementById('endText').textContent = text; endEl.hidden = false; game.players.forEach(renderOpts); }
 function flash(){ const f = document.getElementById('flash'); f.style.opacity = .55; setTimeout(() => f.style.opacity = 0, 160); }
 
 /* ================= layout ================= */
 const app = document.getElementById('app'), screenEl = document.getElementById('screen'), screenFrame = document.getElementById('screenFrame');
 const hostEl = document.getElementById('host'), hostFrame = document.getElementById('hostFrame');
 function layout(){
-  if (CALL){ hostFrame.hidden = true; const s = Math.min(innerWidth / 1280, innerHeight / 720); setScale(screenEl, screenFrame, s, 1280, 720); return; }
+  if (CALL){ const h = DRY_RUN ? 1280 : 720; hostFrame.hidden = true; const s = Math.min(innerWidth / 1280, innerHeight / h); setScale(screenEl, screenFrame, s, 1280, h); return; }
   const W = innerWidth - 24, H = innerHeight - 24;
   screenFrame.hidden = VIEW === 'host'; hostFrame.hidden = VIEW === 'screen';
   if (VIEW === 'screen'){ setScale(screenEl, screenFrame, Math.min(W / 1280, H / 720), 1280, 720); return; }
@@ -878,7 +948,7 @@ const PORTRAITS = [0, 1, 2, 3, 4, 5].map(portraitTex);
 /* ================= 3D world ================= */
 const stage = document.getElementById('stage3d');
 const renderer = new THREE.WebGLRenderer({ antialias:true, preserveDrawingBuffer:true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.setSize(1280, 656, false);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.setSize(1280, DRY_RUN ? 1216 : 656, false);
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = CALL ? 1.62 : 1.4;
 stage.appendChild(renderer.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x040305); scene.fog = new THREE.FogExp2(0x070508, 0.07);
@@ -1152,7 +1222,7 @@ function mabelAppear(p, dist){
   m.visible = true; m.userData.t0 = performance.now(); m.userData.light.intensity = 2; p.look = Math.atan2(-(x - p.pos.x), -(z - p.pos.z)); p.lookPitch = .1;
 }
 function mabelHide(){ if (world && world.mabel){ world.mabel.visible = false; world.mabel.userData.light.intensity = 0; } }
-function scare(p){ scream(); flash(); mabelAppear(p, 1.1); narr('“Found you.”', 1400); setTimeout(mabelHide, 1000 / SPEED); emit('scare', { player:p.id }); }
+function scare(p){ if (DRY_RUN) return; scream(); flash(); mabelAppear(p, 1.1); narr('“Found you.”', 1400); setTimeout(mabelHide, 1000 / SPEED); emit('scare', { player:p.id }); }
 
 /* particle bursts */
 function makeBurst(parent, n, size){ const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); const pts = new THREE.Points(geo, new THREE.PointsMaterial({ map:starTex, size, transparent:true, opacity:0, vertexColors:true, blending:THREE.AdditiveBlending, depthWrite:false })); pts.frustumCulled = false; parent.add(pts); return { pts, vel:new Float32Array(n * 3), n, t0:0, life:2400 }; }
@@ -1429,6 +1499,7 @@ async function trackLoop(){
   }
 }
 function camFrame(player, b64){
+  if (DRY_RUN && (!params.has('localcam') || player !== 0)) return;
   const c = cams[player]; if (!c) return;
   const im = new Image();
   im.onload = () => { c.img = im; c.last = performance.now(); };
@@ -1473,16 +1544,18 @@ function previewGesture(p, g){
   if (g.gesture === 'point' && g.direction){
     const rel = { up:0, right:1, down:2, left:3 }[g.direction];
     const opts = optionsFor(p);
-    const stair = (g.direction === 'up' || g.direction === 'down') ? opts.find(o => o.kind === 'stairs' && (g.direction === 'up' ? o.up : !o.up)) : null;
-    key = (stair || opts.find(o => o.kind === 'door' && o.rel === rel))?.key || null;
+    key = opts.find(o => o.kind === 'door' && o.rel === rel)?.key || null;
   } else if (g.gesture === 'fist'){
     const ss = optionsFor(p).filter(o => o.kind === 'search');
     const idx = p.pick ? ss.findIndex(o => o.key === p.pick.key) : -1;
     key = ss.length ? ss[(idx + 1) % ss.length].key : null;
+  } else if (g.gesture === 'open_palm'){
+    key = optionsFor(p).find(o => o.kind === 'stairs')?.key || null;
   }
   if (p.handPreview !== key){ p.handPreview = key; renderOpts(p); }
 }
 function fireGesture(p, g){
+  if (DRY_RUN) return;
   if (!p || !p.alive || !game || game.over) return;
   if (p.challenge){
     if (p.challenge.type === 'ward' && g.gesture === 'open_palm') return input(p, 'palm');
@@ -1493,8 +1566,7 @@ function fireGesture(p, g){
   if (g.gesture === 'point' && g.direction){
     const rel = { up:0, right:1, down:2, left:3 }[g.direction];
     const opts = optionsFor(p);
-    const stair = (g.direction === 'up' || g.direction === 'down') ? opts.find(o => o.kind === 'stairs' && (g.direction === 'up' ? o.up : !o.up)) : null;
-    const o = stair || opts.find(x => x.kind === 'door' && x.rel === rel);
+    const o = opts.find(x => x.kind === 'door' && x.rel === rel);
     if (o) return input(p, 'opt', o.key);
     banner(p, 'No door that way', '', 1800);
     return 'blocked';
@@ -1503,6 +1575,10 @@ function fireGesture(p, g){
     const ss = optionsFor(p).filter(o => o.kind === 'search');
     if (ss.length){ const idx = p.pick ? ss.findIndex(o => o.key === p.pick.key) : -1; return input(p, 'opt', ss[(idx + 1) % ss.length].key); }
   }
+  if (g.gesture === 'open_palm'){
+    const stair = optionsFor(p).find(o => o.kind === 'stairs');
+    if (stair) return input(p, 'opt', stair.key);
+  }
 }
 function handleHands(player, hands, handedness){
   const c = cams[player]; if (!c) return;
@@ -1510,9 +1586,6 @@ function handleHands(player, hands, handedness){
   const now = performance.now();
   const best = hands.map((lm, i) => ({ ...classifyHand(lm, { handednessScore:handedness[i]?.score || .8, mirror:MIRROR }), at:now }))
     .sort((a, b) => b.confidence - a.confidence)[0];
-  const downStairs = p && !p.challenge && best?.gesture === 'point' && best.direction === 'down' &&
-    optionsFor(p).some(o => o.kind === 'stairs' && !o.up);
-  if (downStairs && !best.clearDown){ c.hold = null; updateHandChip(p, null); previewGesture(p, { gesture:'none' }); return; }
   if (!best || (best.gesture === 'none' && !best.raised)){
     if (!c.noHandSince) c.noHandSince = now;
     if (now - c.noHandSince > 400) { c.hold = null; c.fired = null; }
@@ -1543,7 +1616,7 @@ function handleHands(player, hands, handedness){
   const key = `${best.gesture}|${best.direction || ''}`;
   if (!c.hold || c.hold.key !== key){ c.hold = { key, since:now }; updateHandChip(p, best, 0); return; }
   const held = now - c.hold.since;
-  const holdTime = HAND_HOLD + (downStairs ? 300 : 0);
+  const holdTime = HAND_HOLD;
   updateHandChip(p, best, held / holdTime);
   if (held < holdTime) return;
   if (c.fired?.key === key) return;   // hold the same gesture all you like: change it to fire again
@@ -1682,6 +1755,7 @@ function glimpse(p){
 }
 /* The countdown: Chert cuts calls at 5 minutes, so the signal bars are the time until the line goes dead. */
 function tickClock(now){
+  if (DRY_RUN) return;
   if (!game || game.over || game.phase === 'intro') return;
   const left = game.clockEnd - now, sig = Math.max(0, Math.ceil(left / game.clockTotal * MAXSIG));
   if (sig !== game.signal){ game.signal = sig; emit('signal', { signal:sig }); }
@@ -1779,7 +1853,7 @@ function frame(now){
     game.players.forEach(p => updatePlayer(p, now, dt));
     tickClock(now);
     game.players.forEach(p => drawCamera(p, now));
-    const n = game.players.length, W = 1280, H = 656;
+    const n = game.players.length, W = 1280, H = DRY_RUN ? 1216 : 656;
     renderer.setScissorTest(true);
     game.players.forEach((p, i) => { const w = W / n, x = i * w; renderer.setViewport(x, 0, w, H); renderer.setScissor(x, 0, w, H); p.cam.aspect = w / H; p.cam.updateProjectionMatrix(); renderer.render(scene, p.cam); });
     game.players.forEach(p => { if (p.challenge && p.half.cardBar){ const left = 1 - (now - p.challenge.start) / p.challenge.dur; p.half.cardBar.style.width = Math.max(0, left * 100) + '%'; } });
@@ -1810,7 +1884,7 @@ function click(){ if (!ac) return; tone(1200, 'square', T(), .002, .04, .03); }
 
 /* ================= input ================= */
 addEventListener('keydown', e => {
-  if (!game || game.over) return;
+  if (DRY_RUN || !game || game.over) return;
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   game.players.forEach((p, i) => {
     const v = KEYMAP[i][key]; if (!v) return;
@@ -1879,8 +1953,8 @@ window.deadLine = {
 };
 if (DEBUG) window.deadLine.debug = () => game && { stone:game.stone, keyRoom:game.keyRoom, key:game.spots.find(s => s.content === 'key').id, ghost:game.ghost, phones:game.phones, route:(pl, target) => { const p = game.players[pl], d = bfs(target); const o = optionsFor(p).filter(x => x.kind !== 'search').sort((a, b) => (d[a.room] ?? 99) - (d[b.room] ?? 99))[0]; return o && o.key; }, setGhost:r => { game.ghost = r; }, camInfo:() => ({ mp:mp ? (mp.ready ? 'ready' : mp.failed ? 'failed' : 'loading') : 'none', face:!!mp?.faceReady, hands:!!mp?.handsReady, seg:!!mp?.segReady, cams:cams.map(c => ({ live:!!camLive(c), att:c.att, attAgo:Math.round(performance.now() - c.attAt), mask:!!c.mask })) }), glimpse:pl => glimpse(game.players[pl]), haunt:(pl, dist = .5, ms = 6000) => { const p = game.players[pl]; p.haunt = { mode:'caught', dist, alpha:.9, result:null }; showHaunt(p, true); setTimeout(() => { p.haunt = null; showHaunt(p, false); }, ms); }, giveKey:pl => { const p = game.players[pl]; p.key = true; game.keyFound = true; renderPlayer(p); renderTop(); }, travelTo:(pl, room) => { const p = game.players[pl], ps = restPose(room, 0); p.room = room; p.prev = room; p.dir = 0; Object.assign(p.pos, ps); p.yaw = 0; p.seen.add(room); renderPlayer(p); renderTop(); }, debugHand:(player, landmarks, score = .9) => handleHands(player, [landmarks], [{ score }]) };
 
-if (CALL) void loadMP();
+if (CALL && !DRY_RUN) void loadMP();
 layout();
-if (params.get('autostart')) start(+params.get('autostart') === 2 ? 2 : 1);
+if (DRY_RUN || params.get('autostart')) start(+params.get('autostart') === 2 ? 2 : 1, { skipIntro:DRY_RUN });
 requestAnimationFrame(frame);
 </script>

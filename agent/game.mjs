@@ -52,7 +52,7 @@ export async function openGame({ dir, show = false, query = '' }) {
   if (show && query.includes('localcam')) args.push('--use-fake-ui-for-media-stream');
   if (process.env.GAME_SOFTWARE_GL === '1') args.push('--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader');
   const browser = await chromium.launch({ headless: !show, args, executablePath: process.env.CHROME_PATH || undefined });
-  const page = await browser.newPage({ viewport: { width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport: { width: VIEWPORT_WIDTH, height: query.includes('dryrun=1') ? VIEWPORT_WIDTH : VIEWPORT_HEIGHT }, deviceScaleFactor: 1 });
   const events = new EventEmitter();
   page.on('pageerror', error => console.error('[game] page error:', error.message));
   page.on('crash', () => { console.error('[game] the game page crashed'); events.emit('crash'); });
