@@ -7,8 +7,12 @@ import { EventEmitter } from 'node:events';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
 
+// Publish a square camera frame so FaceTime's square Fill view preserves both players.
+// Keep the browser layout wide and letterbox it during decoding, not in the game UI.
 export const WIDTH = 1280;
-export const HEIGHT = 720;
+export const HEIGHT = 1280;
+const VIEWPORT_WIDTH = 1280;
+const VIEWPORT_HEIGHT = 720;
 const TYPES = { '.wasm': 'application/wasm', '.data': 'application/octet-stream', '.binarypb': 'application/octet-stream', '.tflite': 'application/octet-stream', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json' };
 
 const MEDIAPIPE = resolve(join(import.meta.dirname, 'node_modules', '@mediapipe'));
@@ -48,7 +52,7 @@ export async function openGame({ dir, show = false, query = '' }) {
   if (show && query.includes('localcam')) args.push('--use-fake-ui-for-media-stream');
   if (process.env.GAME_SOFTWARE_GL === '1') args.push('--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader');
   const browser = await chromium.launch({ headless: !show, args, executablePath: process.env.CHROME_PATH || undefined });
-  const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport: { width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT }, deviceScaleFactor: 1 });
   const events = new EventEmitter();
   page.on('pageerror', error => console.error('[game] page error:', error.message));
   page.on('crash', () => { console.error('[game] the game page crashed'); events.emit('crash'); });
@@ -66,12 +70,12 @@ export async function openGame({ dir, show = false, query = '' }) {
     jpeg = frame.data; jpegId++; counts.received++;
     cdp.send('Page.screencastFrameAck', { sessionId: frame.sessionId }).catch(() => {});
   });
-  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: WIDTH, maxHeight: HEIGHT, everyNthFrame: 1 });
+  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: VIEWPORT_WIDTH, maxHeight: VIEWPORT_HEIGHT, everyNthFrame: 1 });
 
   function latestFrame() {
     if (jpeg && rgbaId !== jpegId && !decoding) {
       const id = jpegId;
-      decoding = sharp(Buffer.from(jpeg, 'base64')).resize(WIDTH, HEIGHT, { fit: 'fill' }).ensureAlpha().raw().toBuffer()
+      decoding = sharp(Buffer.from(jpeg, 'base64')).resize(WIDTH, HEIGHT, { fit: 'contain', position: 'centre', background: '#000000' }).ensureAlpha().raw().toBuffer()
         .then(buffer => { if (buffer.length === WIDTH * HEIGHT * 4) { rgba = buffer; rgbaId = id; counts.decoded++; } })
         .catch(() => {})
         .finally(() => { decoding = null; });
