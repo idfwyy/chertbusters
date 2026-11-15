@@ -1,10 +1,5 @@
-// Greet the caller once, when FaceTime is ready.
-//
-// When the Chert Mac reports bridge_ready for the call, chert dev sets the room's metadata to
-// {"chert_call":"<call id>","chert_bridge_ready":true,"at":"<ISO time>"}. The Mac ends a call whose agent sends
-// no audible audio within 10 seconds of bridge_ready (remote_audio_timeout), so the agent greets then.
-// Participant arrival is not enough: FaceTime may still be connecting. Without the signal there is no
-// greeting, and the caller speaks first.
+// Greet on Chert's bridge_ready metadata, or shortly after a caller joins if it never arrives.
+// The bridge can arrive after the fallback; it must still be observed without greeting twice.
 
 // RoomEvent.RoomMetadataChanged in @livekit/rtc-node. The room's metadata is already updated when it fires.
 const METADATA_CHANGED = 'roomMetadataChanged';
@@ -35,4 +30,31 @@ export function greetOnBridgeReady(room, greet) {
   room.on(METADATA_CHANGED, check);
   check();
   return stop;
+}
+
+/** Greet once on bridge readiness or after a caller has waited delayMs. */
+export function greetWithFallback(room, greet, onBridgeReady = () => {}, delayMs = 2000) {
+  let greeted = false, stopped = false, joined = false, timer = null;
+  const sayOnce = () => {
+    if (stopped || greeted) return;
+    greeted = true;
+    clearTimeout(timer);
+    greet();
+  };
+  const stopReady = greetOnBridgeReady(room, () => {
+    onBridgeReady();
+    sayOnce();
+  });
+  return {
+    callerJoined() {
+      if (stopped || joined) return;
+      joined = true;
+      if (!greeted) timer = setTimeout(sayOnce, delayMs);
+    },
+    stop() {
+      stopped = true;
+      clearTimeout(timer);
+      stopReady();
+    },
+  };
 }

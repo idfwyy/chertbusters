@@ -9,7 +9,7 @@ import { dirname, join } from 'node:path';
 import { AutoSubscribe, defineAgent } from '@livekit/agents';
 import { LocalAudioTrack, LocalVideoTrack, ParticipantKind, RoomEvent, TrackKind, TrackSource, VideoBufferType, VideoFrame, VideoSource } from '@livekit/rtc-node';
 import { runAgent } from './chert-rooms.mjs';
-import { greetOnBridgeReady } from './greet.mjs';
+import { greetWithFallback } from './greet.mjs';
 import { openGame, WIDTH, HEIGHT } from './game.mjs';
 import { Voice, cleanLine, prewarm } from './voice.mjs';
 import { listenAudio, watchVideo } from './listen.mjs';
@@ -28,48 +28,66 @@ const AGREE = /\b(yes|yeah|yep|sure|okay|ok|we'?re in|i'?m in|let'?s (play|go)|p
 const ASK = /\b(chert|where|what|how|why|can you|do you|hint|help|stuck|which)\b/;
 const NAME_RE = [/\b(batman|bruce|batty|bat)\b/, /\b(spider[- ]?man|peter|spidey|spider)\b/];
 
+const HELLO = 'Hello? Hello! It’s Chert!';
 const GREETING = 'Mabel stole my spark stone! Can you help? Point to walk, fist to search, palm if she reaches for you. Say your hero’s name with voice commands.';
 const TWO_PLAYERS = 'Two of you. Batman is on the left, Spider-Man on the right.';
 const REPROMPT = 'Are you still there? I really need your help.';
 
 const agent = defineAgent({
+  prewarm: async () => { await prewarm([['chert', HELLO], ['chert', GREETING]]); },
   entry: async ctx => {
     await ctx.connect(undefined, AutoSubscribe.SUBSCRIBE_ALL);
-    // Load the game while the room waits for a caller, so it is ready the moment someone calls.
-    const game = await openGame({ dir: GAME_DIR, show: process.env.SHOW_GAME === '1', query: '&voicesync=1' });
-    // Record the game's fixed lines ahead of time (only the first run does real work; they're saved in voice-cache/).
-    void game.scriptLines().then(lines => prewarm([...lines, ['chert', GREETING], ['chert', REPROMPT], ['chert', TWO_PLAYERS]]));
+    // Start the page in parallel; audio and the greeting must not wait for Chromium.
+    let game = null, closed = false;
+    const gameReady = openGame({ dir: GAME_DIR, show: process.env.SHOW_GAME === '1', query: '&voicesync=1' })
+      .then(async page => { if (closed) { await page.close(); return null; } game = page; return page; })
+      .catch(error => { console.error('[game] could not open:', error.message); return null; });
     const stops = [];
-    ctx.addShutdownCallback(async () => { for (const stop of stops) { try { await stop(); } catch { /* call over */ } } await game.close(); });
-    await ctx.waitForParticipant();
-
-    // One camera track (the game) and one audio track (Chert), both from this agent.
-    const video = new VideoSource(WIDTH, HEIGHT);
-    const videoTrack = LocalVideoTrack.createVideoTrack('chertbusters', video);
+    ctx.addShutdownCallback(async () => {
+      closed = true;
+      for (const stop of stops) { try { await stop(); } catch { /* call over */ } }
+      if (game) await game.close();
+    });
+    let phase = 'lobby', players = 0, reprompt = null, lastHeard = 0, bridgeAt = 0;
+    const recentSpeech = [];
     let speakingUntil = 0;
     const voice = new Voice({
-      onStart: (id, ms) => { speakingUntil = Math.max(speakingUntil, Date.now() + (ms || 2000) + 700); if (id) void game.voiceStart(id, ms); },
-      onDone: id => { speakingUntil = Date.now() + 900; if (id) void game.voiceDone(id); },
+      onStart: (id, ms) => { speakingUntil = Math.max(speakingUntil, Date.now() + (ms || 2000) + 700); if (id && game) void game.voiceStart(id, ms); },
+      onDone: id => { speakingUntil = Date.now() + 900; if (id && game) void game.voiceDone(id); },
     });
     const audioTrack = LocalAudioTrack.createAudioTrack('chert-voice', voice.source);
-    // Higher bitrate and no simulcast, so the game's text stays sharp on FaceTime.
-    await ctx.room.localParticipant.publishTrack(videoTrack, { source: TrackSource.SOURCE_CAMERA, simulcast: false, videoEncoding: { maxBitrate: BigInt(+(process.env.VIDEO_KBPS || 3500) * 1000), maxFramerate: FPS } });
-    await ctx.room.localParticipant.publishTrack(audioTrack, { source: TrackSource.SOURCE_MICROPHONE });
+    const video = new VideoSource(WIDTH, HEIGHT);
+    const videoTrack = LocalVideoTrack.createVideoTrack('chertbusters', video);
+    stops.push(() => voice.close(), () => videoTrack.close(), () => audioTrack.close());
+    const audioReady = ctx.room.localParticipant.publishTrack(audioTrack, { source: TrackSource.SOURCE_MICROPHONE });
+    // Do not wait for video publication before greeting.
+    void audioReady.then(() => { if (!closed) return ctx.room.localParticipant.publishTrack(videoTrack, { source: TrackSource.SOURCE_CAMERA, simulcast: false, videoEncoding: { maxBitrate: BigInt(+(process.env.VIDEO_KBPS || 3500) * 1000), maxFramerate: FPS } }); })
+      .catch(error => console.error('[chertbusters] track publication failed:', error.message));
     let sent = 0, sendErrors = 0;
-    const sendFrame = () => { try { video.captureFrame(new VideoFrame(game.latestFrame(), WIDTH, HEIGHT, VideoBufferType.RGBA)); sent++; } catch (error) { if (sendErrors++ < 3) console.error('[chertbusters] video frame failed:', error.message); } };
-    sendFrame();
+    const sendFrame = () => { if (!game || closed) return; try { video.captureFrame(new VideoFrame(game.latestFrame(), WIDTH, HEIGHT, VideoBufferType.RGBA)); sent++; } catch (error) { if (sendErrors++ < 3) console.error('[chertbusters] video frame failed:', error.message); } };
     const timer = setInterval(sendFrame, 1000 / FPS);
-    // Every 10 s: is the game still producing pictures? (Shows up in Terminal 1.)
-    const stats = setInterval(() => { const g = game.stats(); console.log(`[video] ${g.received} pictures from the game, ${g.decoded} decoded, ${sent} sent in the last 10 s${g.received === 0 ? '  <- the game page stopped drawing' : ''}`); g.reset(); sent = 0; }, 10_000);
-    stops.push(() => clearInterval(timer), () => clearInterval(stats), () => voice.close(), () => videoTrack.close(), () => audioTrack.close());
+    const stats = setInterval(() => { if (!game) return; const g = game.stats(); console.log(`[video] ${g.received} pictures from the game, ${g.decoded} decoded, ${sent} sent in the last 10 s${g.received === 0 ? '  <- the game page stopped drawing' : ''}`); g.reset(); sent = 0; }, 10_000);
+    stops.push(() => clearInterval(timer), () => clearInterval(stats));
+    const greeting = greetWithFallback(ctx.room, () => {
+      if (!bridgeAt) bridgeAt = Date.now();
+      recentSpeech.push(HELLO, GREETING);
+      void audioReady.then(() => { if (!closed) { voice.say('chert', HELLO); voice.say('chert', GREETING); } })
+        .catch(error => console.error('[chertbusters] greeting failed:', error.message));
+      reprompt = setTimeout(() => { if (!closed && phase === 'lobby' && Date.now() - lastHeard > 22_000) { if (game) void game.say('chert', REPROMPT); else voice.say('chert', REPROMPT); } }, 28_000);
+    }, () => { console.log('[chertbusters] bridge_ready'); if (!bridgeAt) bridgeAt = Date.now(); });
+    stops.push(() => greeting.stop(), () => clearTimeout(reprompt));
+    await ctx.waitForParticipant();
+    console.log('[chertbusters] caller joined');
+    if (!bridgeAt) bridgeAt = Date.now();
+    greeting.callerJoined();
+    if (!(await gameReady) || closed) return;
+    void game.scriptLines().then(lines => prewarm([...lines, ['chert', REPROMPT], ['chert', TWO_PLAYERS]]));
 
     // ---- who is who ----
-    let phase = 'lobby', players = 0, reprompt = null, lastHeard = 0, bridgeAt = 0;
     let mixed = MIXED_ENV, tileCount = 0;
     const people = new Map();         // identity -> { stopAudio, stopVideo }
     const slots = [];                 // non-bridge calls: slots[0] = player 1
     const active = {};                // player -> current challenge { kind, since, base }
-    const recentSpeech = [];
     const isHuman = p => p.kind !== ParticipantKind.AGENT && p.identity !== ctx.room.localParticipant.identity;
     const slotOf = identity => {
       let s = slots.indexOf(identity);
@@ -265,13 +283,6 @@ const agent = defineAgent({
       } catch (error) { console.error('[chertbusters] reload failed', error.message); voice.say('chert', 'Sorry, the house won’t load. Call me back in a minute?'); }
     });
 
-    // ---- greet when FaceTime is ready (Chert ends calls that stay silent for 10 seconds) ----
-    const stopGreeting = greetOnBridgeReady(ctx.room, () => {
-      bridgeAt = Date.now();
-      void game.sayWait('chert', GREETING);
-      reprompt = setTimeout(() => { if (phase === 'lobby' && Date.now() - lastHeard > 22_000) void game.say('chert', REPROMPT); }, 28_000);
-    });
-    stops.push(() => stopGreeting(), () => clearTimeout(reprompt));
   },
 });
 

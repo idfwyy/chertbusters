@@ -65,7 +65,7 @@ npx --yes @trychert/facetime@0.1.0-beta.20 doctor
 npx --yes @trychert/facetime@0.1.0-beta.20 dev --minutes 30
 ```
 
-When `dev` says the agent is waiting, FaceTime **Video** the line from the iPhone. Add the second caller before or during the call. Wait for `FaceTime is ready`; Chert greets within ten seconds.
+When `dev` says the agent is waiting, FaceTime **Video** the line from the iPhone. Add the second caller before or during the call. Terminal 1 logs `[chertbusters] caller joined` and `[chertbusters] bridge_ready`; if the readiness signal is missing, Chert greets two seconds after the caller joins.
 
 The left tile controls Batman and the right tile controls Spider-Man. No calibration is required. In a two-player game, say the hero's name before a voice command; questions without a name are answered generally.
 
