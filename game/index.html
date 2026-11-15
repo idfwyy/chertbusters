@@ -245,7 +245,6 @@ import { classifyHand, GESTURE_LABELS } from './gestures.js';
 /* ================= config ================= */
 const params = new URLSearchParams(location.search);
 const SPEED = Math.max(.25, +(params.get('speed') || 1));
-const CHOOSE_SECS = +(params.get('choose') || 20);
 const VIEW = params.get('view') || 'both';
 const DEBUG = params.has('debug');
 const CALL = VIEW === 'call';
@@ -334,7 +333,7 @@ const listeners = [];
 function emit(type, data = {}){ const ev = { type, round:game ? game.round : 0, ...data }; listeners.forEach(f => { try { f(ev); } catch (e) {} }); console.log('[deadline]', JSON.stringify(ev)); }
 
 /* ================= players and options ================= */
-function makePlayer(i){ return { id:i, name:NAMES[i] || 'Player ' + (i + 1), room:'foyer', prev:'foyer', dir:0, alive:true, pick:null, key:false, fuse:false, challenge:null, anim:null, yaw:0, pitch:-.04, look:null, lookPitch:-.04, pos:null, seen:new Set(['foyer']), half:null, ghostHere:false, cam:null, spot:null, hints:{ key:0, stone:0 }, stuckAt:performance.now(), hand:null, handPreview:null }; }
+function makePlayer(i){ return { id:i, name:NAMES[i] || 'Player ' + (i + 1), room:'foyer', prev:'foyer', dir:0, alive:true, busy:false, pick:null, key:false, fuse:false, challenge:null, anim:null, yaw:0, pitch:-.04, look:null, lookPitch:-.04, pos:null, seen:new Set(['foyer']), half:null, ghostHere:false, cam:null, spot:null, hints:{ key:0, stone:0 }, stuckAt:performance.now(), hand:null, handPreview:null }; }
 function optionsFor(p){
   const doors = [], other = [];
   for (const n of neighbors(p.room)){
@@ -388,7 +387,7 @@ function input(p, kind, value){
     if (s.passOn.includes(kind)){ p.challenge.finish(true); return 'passed'; }
     return 'ignored';
   }
-  if (game.phase !== 'choose' || !p.alive || p.anim) return 'ignored';
+  if (game.phase === 'intro' || !p.alive || p.busy || p.anim) return 'ignored';
   const opts = optionsFor(p);
   let o = null;
   if (kind === 'dir') o = opts.find(x => x.kind === 'door' && x.rel === value);
@@ -403,6 +402,7 @@ function pickOpt(p, o){
   const t = lookTarget(p, o); p.look = Math.atan2(-(t.x - p.pos.x), -(t.z - p.pos.z)); p.lookPitch = o.kind === 'search' ? -.3 : o.kind === 'stairs' ? (o.up ? .18 : -.25) : -.04;
   renderOpts(p); click();
   emit('pick', { player:p.id, kind:o.kind, label:o.kind === 'search' ? 'search ' + o.spot.label : o.label.toLowerCase(), room:R[o.room || p.room].name });
+  void movePlayer(p, o, token);
 }
 function lookTarget(p, o){
   const org = roomOrigin(p.room);
@@ -467,48 +467,38 @@ async function start(n, opts = {}){
     }
     if (CALL && !hostEl.hidden){ await switchScreen(false); alive(t); }
     narr('Welcome to Hollow Line Manor. Please hold…', 2400); await wait(1800); alive(t);
+    game.phase = 'choose'; game.players.forEach(renderOpts);
     while (!game.over){
-      game.round++; renderTop(); emit('round', { round:game.round, signal:game.signal });
-      await choosePhase(t); alive(t);
-      await revealPhase(t); alive(t); if (game.over) break;
+      await wait(9000); alive(t);
+      if (game.over) break;
+      game.round++; renderTop();
       await ghostPhase(t); alive(t);
     }
   } catch (e) { if (e.message !== 'stopped') console.error(e); }
 }
-async function choosePhase(t){
-  game.phase = 'choose';
-  game.players.forEach(p => { p.pick = null; p.look = null; p.lookPitch = -.04; renderOpts(p); });
-  const total = CHOOSE_SECS * 1000 / SPEED, end = performance.now() + total;
-  while (performance.now() < end){
-    alive(t);
-    const left = (end - performance.now()) / total;
-    timerText.textContent = `Choose · ${Math.ceil(left * CHOOSE_SECS)}s`; timerBar.style.width = (left * 100) + '%';
-    if (game.players.filter(p => p.alive).every(p => p.pick)){ await wait(1500); break; }
-    await new Promise(r => setTimeout(r, 100));
-  }
-  timerText.textContent = 'Moving…'; timerBar.style.width = '0%';
-  game.phase = 'reveal'; game.players.forEach(renderOpts);
-}
-async function revealPhase(t){
-  for (const p of game.players){
-    if (!p.alive || game.over) continue;
-    const o = p.pick;
-    if (!o){ toast(p, 'Chert', 'You froze and stayed put.'); await wait(800); continue; }
-    if (o.kind === 'search'){ await doSearch(p, o.spot, t); alive(t); await wait(300); continue; }
-    if (o.kind === 'door' && o.door.sealed){
-      if (!p.key){ toast(p, 'Chert', 'It’s sealed with Mabel’s dial lock. You need her brass key.'); say('chert', 'Sealed! We need her key first.'); await wait(1400); p.look = null; continue; }
-      o.door.sealed = false; updateLocks(); unlockFx(o.door); emit('unsealed', { player:p.id });
-      await say('chert', 'The key fits! It’s opening…'); alive(t);
+async function movePlayer(p, o, t){
+  p.busy = true; renderOpts(p);
+  try {
+    if (o.kind === 'search'){ await doSearch(p, o.spot, t); alive(t); }
+    else {
+      if (o.kind === 'door' && o.door.sealed){
+        if (!p.key){ toast(p, 'Chert', 'It’s sealed with Mabel’s dial lock. You need her brass key.'); say('chert', 'Sealed! We need her key first.'); await wait(1400); p.look = null; return; }
+        o.door.sealed = false; updateLocks(); unlockFx(o.door); emit('unsealed', { player:p.id });
+        await say('chert', 'The key fits! It’s opening…'); alive(t);
+      }
+      if (o.kind === 'door' && o.door.locked){
+        const ok = await challenge(p, 'metal'); alive(t);
+        if (!ok){ toast(p, 'Chert', 'The padlock holds. Try another way.'); await wait(800); return; }
+        o.door.locked = false; updateLocks(); say('chert', 'Snap! It broke.');
+      }
+      await travel(p, o); alive(t);
+      if (game.ghost !== p.room || performance.now() - game.startedAt < GHOST_GRACE){ await resolveRoom(p, t); alive(t); }
     }
-    if (o.kind === 'door' && o.door.locked){
-      const ok = await challenge(p, 'metal'); alive(t);
-      if (!ok){ toast(p, 'Chert', 'The padlock holds. Try another way.'); await wait(800); continue; }
-      o.door.locked = false; updateLocks(); say('chert', 'Snap! It broke.');
-    }
-    await travel(p, o); alive(t);
-    if (game.ghost === p.room && performance.now() - game.startedAt >= GHOST_GRACE){ await encounter(p, t); alive(t); continue; }
-    await resolveRoom(p, t); alive(t);
-    await wait(900);
+    if (!game.over && p.alive && game.ghost === p.room && performance.now() - game.startedAt >= GHOST_GRACE){ await encounter(p, t); alive(t); }
+  } catch (e) { if (e.message !== 'stopped') console.error(e); }
+  finally {
+    p.busy = false; p.pick = null; p.look = null; p.lookPitch = -.04;
+    if (t === token && p.half) renderOpts(p);
   }
 }
 async function resolveRoom(p, t){
@@ -600,7 +590,7 @@ async function caughtFlash(p){
 }
 function vanish(){ const live = game.players.filter(x => x.alive); const far = ROOMS.map(r => r.id).filter(id => id !== 'foyer' && live.every(p => (bfs(p.room)[id] ?? 9) >= 2)); if (far.length) game.ghost = pick(far); emit('ghost_vanished'); }
 async function ghostPhase(t){
-  game.phase = 'ghost';
+  // Ghost movement is independent of either player's move.
   if (performance.now() - game.startedAt < GHOST_GRACE){ emit('ghost_moved'); return; }
   const live = game.players.filter(x => x.alive), occupied = new Set(live.map(p => p.room));
   const opts = neighbors(game.ghost).map(n => n.room).filter(r => r !== 'foyer' && (game.round > 2 || !occupied.has(r)));
@@ -618,7 +608,11 @@ async function ghostPhase(t){
   if (game.round % 4 === 0 && !game.keyFound && game.clues.length && live.length){ const p = pick(live); await say('chert', 'Wait… I’m picking something up on the line.'); alive(t); sendClue(p, game.clues.shift(), 'Chert overheard it on the line'); }
   else if (game.round >= 4 && rand() < .2){ await hijack(); alive(t); }
   else if (live.some(p => neighbors(p.room).some(n => n.room === game.ghost)) && rand() < .4) say('chert', 'I’m hearing static near one of you… careful.');
-  for (const p of game.players) if (p.alive && p.room === game.ghost && !game.over){ toast(p, 'Chert', 'She’s coming into your room!'); await wait(900); await encounter(p, t); alive(t); }
+  for (const p of game.players) if (p.alive && p.room === game.ghost && !game.over && !p.busy){
+    p.busy = true; renderOpts(p);
+    toast(p, 'Chert', 'She’s coming into your room!');
+    void (async () => { try { await encounter(p, t); alive(t); } catch (e) { if (e.message !== 'stopped') console.error(e); } finally { p.busy = false; if (t === token && p.half) renderOpts(p); } })();
+  }
   await wait(400);
 }
 async function hijack(){ chert.hijack = performance.now() + 4800 / SPEED; staticBurst(); emit('hijack'); if (CALL) await switchScreen(true, 'Signal hijacked'); await say('mabel', 'He can’t help you anymore. Please hold.', 3200); chert.hijack = 0; if (CALL) await switchScreen(false); await say('chert', 'Sorry! Sorry. She got into the line again.'); }
@@ -725,14 +719,14 @@ function renderOpts(p){
     const sub = o.kind === 'search' ? 'the ' + o.spot.label : R[o.room].name;
     b.innerHTML = `<span class="arr">${o.arrow}</span><span>${o.label}</span><small></small>`;
     b.querySelector('small').textContent = sub;
-    b.disabled = game.phase !== 'choose' || !!p.anim;
+    b.disabled = game.phase === 'intro' || p.busy || !!p.anim || !!p.challenge;
     b.addEventListener('click', () => input(p, 'opt', o.key));
     box.appendChild(b);
   });
 }
 function renderTop(){
   const leftS = Math.max(0, Math.ceil((game.clockEnd - performance.now()) * SPEED / 1000));
-  document.getElementById('round').textContent = `Round ${Math.max(1, game.round)} · line dies in ${Math.floor(leftS / 60)}:${String(leftS % 60).padStart(2, '0')}`;
+  document.getElementById('round').textContent = `Line dies in ${Math.floor(leftS / 60)}:${String(leftS % 60).padStart(2, '0')}`;
   const bars = Array.from({ length:MAXSIG }, (_, i) => `<span class="${i < game.signal ? 'on' : ''}" style="height:${4 + (i + 1) * 3}px"></span>`).join('');
   document.getElementById('sig').innerHTML = bars; document.getElementById('hostSig').innerHTML = bars;
   const seen = new Set(game.players.flatMap(p => [...p.seen]));
@@ -1466,7 +1460,7 @@ function updateHandChip(p, g, progress = 0){
   chip.querySelector('i em').style.width = `${Math.round(Math.max(0, Math.min(1, progress)) * 100)}%`;
 }
 function previewGesture(p, g){
-  if (!p?.half || !game || game.phase !== 'choose' || !p.alive || p.anim){ if (p && p.handPreview){ p.handPreview = null; renderOpts(p); } return; }
+  if (!p?.half || !game || game.over || game.phase === 'intro' || !p.alive || p.busy || p.anim){ if (p && p.handPreview){ p.handPreview = null; renderOpts(p); } return; }
   let key = null;
   if (g.gesture === 'point' && g.direction){
     const rel = { up:0, right:1, down:2, left:3 }[g.direction];
@@ -1487,7 +1481,7 @@ function fireGesture(p, g){
     if (p.challenge.type === 'strike' && (g.gesture === 'fist' || g.gesture === 'point')) return input(p, 'act');
     return;
   }
-  if (game.phase !== 'choose' || p.anim) return;
+  if (game.phase === 'intro' || p.busy || p.anim) return;
   if (g.gesture === 'point' && g.direction){
     const rel = { up:0, right:1, down:2, left:3 }[g.direction];
     const opts = optionsFor(p);
