@@ -191,6 +191,10 @@ export function detectTiles(luma, width, height, opts = {}) {
     return true;
   });
 
+  // FaceTime puts caller tiles side by side with a thin black gap (about 1.5% of the
+  // width). That gap is narrower than a grid cell, so two tiles can come out as one
+  // box. Split any box at a full-height dark column.
+  boxes = boxes.flatMap(b => splitAtGaps(b, luma, width, height, threshold).filter(t => t.w >= minW * 0.8));
   boxes.sort((a, b) => b.w * b.h - a.w * a.h);
   boxes = boxes.slice(0, opts.maxTiles ?? 2);
   boxes.sort((a, b) => a.x - b.x);
@@ -210,6 +214,29 @@ export function detectTiles(luma, width, height, opts = {}) {
     h: clamp(Math.round(b.h), 1, height),
     fallback: false,
   })).map((b, i) => ({ ...b, w: Math.min(b.w, width - b.x), h: Math.min(b.h, height - b.y), id: i }));
+}
+
+function splitAtGaps(b, luma, width, height, threshold) {
+  const y0 = Math.max(0, Math.round(b.y + b.h * 0.1)), y1 = Math.min(height, Math.round(b.y + b.h * 0.9));
+  const x0 = Math.max(0, Math.round(b.x)), x1 = Math.min(width, Math.round(b.x + b.w));
+  const dark = [];
+  for (let x = x0; x < x1; x++) {
+    let d = 0, n = 0;
+    for (let y = y0; y < y1; y += 2) { if (luma[y * width + x] <= threshold) d++; n++; }
+    dark.push(n ? d / n : 0);
+  }
+  const cuts = [];
+  const margin = Math.round(b.w * 0.15), minRun = Math.max(3, Math.round(width * 0.004));
+  for (let i = margin, run = 0; i < dark.length - margin; i++) {
+    if (dark[i] > 0.92) run++;
+    else { if (run >= minRun) cuts.push([i - run, i]); run = 0; }
+  }
+  if (!cuts.length) return [b];
+  const parts = [];
+  let start = 0;
+  for (const [s0, s1] of cuts) { parts.push({ x: x0 + start, y: b.y, w: s0 - start, h: b.h }); start = s1; }
+  parts.push({ x: x0 + start, y: b.y, w: dark.length - start, h: b.h });
+  return parts.filter(p => p.w > 0);
 }
 
 function sameLayout(a, b, width, height) {
