@@ -8,7 +8,7 @@ Chert calls you. He is a nervous little stone whose spark was stolen by Mabel, a
 
 - The game is driven by what the agent sees: two caller tiles from one FaceTime window, per-player hand gestures, face attention, mouth movement, and a person mask that puts Mabel behind the right caller.
 - The call itself is the controller. There is no app to install; one iPhone is enough for a solo demo, two for the full game.
-- It uses the awkward part of the channel honestly: FaceTime sends one mixed audio track and a window capture, not one clean track per person. The agent splits the picture, calibrates which tile is which player, and attributes speech by name or lip movement.
+- The call itself supplies one mixed audio track and a window capture, not one clean track per person. The left tile is Batman and the right tile is Spider-Man; in a two-player game, say the hero's name before each voice command.
 
 ## Run it
 
@@ -29,7 +29,7 @@ For the real call, run `npm start` in one terminal and `chert dev --minutes 30` 
 
 ## Controls
 
-Voice works for everything: "left", "right", "forward", "back", "upstairs", "downstairs", "search the desk", "strike it", "palm", "ready". Hand gestures are the fast path: point to a door, hold a fist to search, hold an open palm to push Mabel back, thumbs up in the lobby to start.
+Voice works for everything: "Batman left", "Spider-Man search", "upstairs", "strike it", "palm", "ready". A solo player can omit the name. Players move independently. Point to a door, hold a fist to search, hold an open palm to push Mabel back, or give a thumbs up in the lobby to start.
 
 ## Notes
 

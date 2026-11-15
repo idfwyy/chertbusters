@@ -36,6 +36,7 @@ npm run preview
 A window shows exactly what the callers would see. Type what a player says:
 
 ```
+1 solo             start one player (use 1 ready for two)
 1 hey chert what do we do?
 1 ready
 1 left
@@ -66,7 +67,7 @@ npx --yes @trychert/facetime@0.1.0-beta.20 dev --minutes 30
 
 When `dev` says the agent is waiting, FaceTime **Video** the line from the iPhone. Add the second caller before or during the call. Wait for `FaceTime is ready`; Chert greets within ten seconds.
 
-The first thing Chert does is calibrate the two tiles: Batman raises a hand, then Spider-Man. If hands are unavailable, he asks each person to say "here" and watches which mouth moves. The mapping is logged as `[video] Batman = tile 0, Spider-Man = tile 1`.
+The left tile controls Batman and the right tile controls Spider-Man. No calibration is required. In a two-player game, say the hero's name before a voice command; questions without a name are answered generally.
 
 Press Ctrl+C in terminal 2 when done, so the line is free for the next team.
 
@@ -95,7 +96,6 @@ If the split is wrong:
 - `TILE_COUNT=2` forces two equal columns when detection finds only one blob.
 - `TILE_RECTS="x,y,w,h;x,y,w,h"` pins the crops in normalized coordinates. Copy `tileRects` from `caller-view-1.json` and add a little margin.
 - `PLAYERS=2` forces two players even when only one tile is detected.
-- `CALIBRATE=0` skips the hand-raise step and uses left-to-right order.
 
 Caller capture can include the FaceTime controls, names, and self-preview depending on the line's capture profile. It is not always a raw camera feed. If the capture shows only one tile, or no caller video at all, the game still runs: voice controls and all non-camera challenges work, and camera challenges are skipped for the missing tile.
 
@@ -112,7 +112,7 @@ Caller capture can include the FaceTime controls, names, and self-preview depend
 
 | File | Job |
 | --- | --- |
-| `agent.mjs` | LiveKit room, the one video/audio publisher, tile mapping, calibration, lobby, echo guard |
+| `agent.mjs` | LiveKit room, the one video/audio publisher, tile mapping, lobby, echo guard |
 | `listen.mjs` | Speech-to-text, loudness, per-tile luma samples, tile crops, snapshots |
 | `tiles.mjs` | Caller-tile detector and layout stabiliser (pure functions, unit tested) |
 | `brain.mjs` | Chert's ChatGPT persona and tools |

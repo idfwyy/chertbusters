@@ -209,7 +209,7 @@ body:not(.view-call) .guide{display:none}
           <li>Climb the stairs and find the room with the <b>red glowing door</b>.</li>
           <li>Unlock it and <b>strike the spark stone</b> first to win.</li>
         </ol>
-        <div class="how">Every turn, each player says one move: a door (left, right, forward, back), the stairs, or something to search. Then the moves play out. If Mabel finds you, do what she says or you&rsquo;re disconnected.</div>
+        <div class="how">Each player can move or search whenever they are ready. If Mabel finds you, do what she says or you&rsquo;re disconnected.</div>
       </div>
       <div id="narr"></div>
       <div id="callCap"></div>
@@ -503,7 +503,7 @@ async function movePlayer(p, o, t){
 async function resolveRoom(p, t){
   const id = p.room;
   if (id === game.stone){
-    await challenge(p, 'strike'); alive(t); await win(p); return;
+    await challenge(p, 'strike'); alive(t); if (!game.over) await win(p); return;
   }
   // Warmer or colder: is this room closer to what you're looking for (the key, then the stone)?
   if (p.prev !== id){
