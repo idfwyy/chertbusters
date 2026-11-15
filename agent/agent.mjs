@@ -3,6 +3,7 @@
 // Audio: Chert's voice (ElevenLabs, OpenAI as backup). Brain: a ChatGPT model (brain.mjs) for anything that
 // isn't a plain command. Each caller's own audio controls their own side of the split screen.
 import { fileURLToPath } from 'node:url';
+import { writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { AutoSubscribe, defineAgent } from '@livekit/agents';
 import { LocalAudioTrack, LocalVideoTrack, ParticipantKind, RoomEvent, TrackKind, TrackSource, VideoBufferType, VideoFrame, VideoSource } from '@livekit/rtc-node';
@@ -130,7 +131,7 @@ const agent = defineAgent({
         person.stopAudio = listenAudio(track, { label: id, onText: text => void onText(id, text), onLoud: () => onLoud(id) });
         if (!MIXED) slotOf(id);
       }
-      if (track.kind === TrackKind.KIND_VIDEO && !person.stopVideo) person.stopVideo = watchVideo(track, { label: id, onSample: s => onSample(id, s), onFrame: jpg => { const p = MIXED ? 0 : slots.indexOf(id); if (p >= 0) void game.cam(p, jpg); } });
+      if (track.kind === TrackKind.KIND_VIDEO && !person.stopVideo) person.stopVideo = watchVideo(track, { label: id, onSample: s => onSample(id, s), onSnapshot: jpg => void writeFile(join(HERE, `caller-view-${people.size > 1 ? [...people.keys()].indexOf(id) + 1 : 1}.jpg`), jpg).catch(() => {}), onFrame: jpg => { const p = MIXED ? 0 : slots.indexOf(id); if (p >= 0) void game.cam(p, jpg); } });
     }
     for (const participant of ctx.room.remoteParticipants.values())
       for (const publication of participant.trackPublications.values()) if (publication.track) attach(publication.track, participant);

@@ -69,13 +69,25 @@ async function transcribe(chunks) {
 }
 
 // onFrame gets a small JPEG (base64) of the caller's camera about 7 times a second, for the game's Mabel filter.
-export function watchVideo(track, { label, onSample, onFrame }) {
+// onSnapshot gets a full-size JPEG Buffer every few seconds (saved to disk so you can see exactly what Chert sends).
+export function watchVideo(track, { label, onSample, onFrame, onSnapshot }) {
   const stream = new VideoStream(track);
-  let stopped = false, prev = null, last = 0, lastSend = 0, sending = false;
+  let stopped = false, prev = null, last = 0, lastSend = 0, sending = false, lastSnap = 0, size = '';
   (async () => {
     for await (const event of stream) {
       if (stopped) break;
       const now = Date.now();
+      const dims = `${event.frame.width}x${event.frame.height} rot ${ROTATE[event.rotation] || 0}`;
+      if (dims !== size) { size = dims; console.log(`[video] camera from ${label}: ${dims}`); }
+      if (onSnapshot && now - lastSnap > 3000) {
+        lastSnap = now;
+        try {
+          const rgba = event.frame.convert(VideoBufferType.RGBA);
+          const pixels = Buffer.from(rgba.data.buffer, rgba.data.byteOffset, rgba.data.byteLength);
+          sharp(pixels, { raw: { width: rgba.width, height: rgba.height, channels: 4 } }).rotate(ROTATE[event.rotation] || 0).jpeg({ quality: 85 }).toBuffer()
+            .then(onSnapshot).catch(() => {});
+        } catch {}
+      }
       if (onFrame && !sending && now - lastSend > 140) {
         lastSend = now; sending = true;
         try {

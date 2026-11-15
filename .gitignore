@@ -4,3 +4,4 @@ node_modules/
 voice-cache/
 *.zip
 .DS_Store
+agent/caller-view*.jpg
