@@ -1,0 +1,22 @@
+{
+  "name": "dead-line-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.23.2 || ^24.0.0 || ^26.0.0"
+  },
+  "scripts": {
+    "start": "node --env-file=.env.local agent.mjs start",
+    "preview": "node --env-file-if-exists=.env.local preview.mjs",
+    "check": "node --check agent.mjs && node --check game.mjs && node --check voice.mjs && node --check listen.mjs && node --check preview.mjs && node --check brain.mjs"
+  },
+  "dependencies": {
+    "@livekit/agents": "1.8.0",
+    "@livekit/rtc-node": "0.13.35",
+    "@mediapipe/face_mesh": "0.4.1633559619",
+    "@mediapipe/selfie_segmentation": "0.1.1675465747",
+    "playwright": "1.56.1",
+    "sharp": "0.35.3"
+  }
+}
