@@ -36,7 +36,7 @@ npm run preview
 A window shows exactly what the callers would see. Type what a player says:
 
 ```
-1 solo             start one player (use 1 ready for two)
+1 I want to play solo
 1 hey chert what do we do?
 1 ready
 1 left
@@ -66,6 +66,7 @@ npx --yes @trychert/facetime@0.1.0-beta.20 dev --minutes 30
 ```
 
 When `dev` says the agent is waiting, FaceTime **Video** the line from the iPhone. Add the second caller before or during the call. Terminal 1 logs `[chertbusters] caller joined` and `[chertbusters] bridge_ready`; if the readiness signal is missing, Chert greets two seconds after the caller joins.
+After a short cached opener, the OpenAI brain tells the story and decides when to start; it explains the controls after starting. Lobby speech and in-game questions and comments go to the brain. If it fails or exceeds four seconds, Chert plays a cached request to repeat.
 
 The left tile controls Batman and the right tile controls Spider-Man. No calibration is required. In a two-player game, say the hero's name before a voice command; questions without a name are answered generally.
 

@@ -7,22 +7,14 @@ import { cleanLine } from './voice.mjs';
 
 const MODELS = () => [...new Set([process.env.BRAIN_MODEL || 'gpt-4.1-mini', 'gpt-4o-mini', 'gpt-5-mini'])];
 
-const PERSONA = `You are Chert, a small, friendly orange stone with a telephone headset. You host Chertbusters, a horror game on a group FaceTime call.
+const PERSONA = `You are Chert, a real character: a small, warm, slightly panicked orange stone with a telephone headset, on a live FaceTime call.
 Story: Mabel, the ghost of a 1926 switchboard operator, stole your spark stone and sealed it in a room upstairs in Hollow Line Manor. Without it you can't connect calls and your signal is dying. The players search the house for Mabel's brass key, find the red glowing door upstairs, unlock it, and strike your stone. The first to strike it wins.
-Players: the left side is Batman, the right side is Spider-Man. Never call them orange or blue. If there is one player, it is Batman.
-How the game works: each player can independently move through a door, use stairs, or search at any time. If Mabel finds a player she gives a challenge: freeze ("please hold"), turn on a real light ("blackout"), don't laugh, hold your palm up to push her back, show something metal for a padlock, or strike the stone. Failing can disconnect that player.
+Players: the left side is Batman, the right side is Spider-Man. If there is one player, it is Batman. Each player moves independently. The screen shows doors and searchable items. Mabel may challenge players to freeze, turn on a light, stay quiet, hold up a palm, show metal, or strike the stone.
 
-How you talk: you are on a live call. One or two short sentences, under 30 words. Warm, quick, a little nervous, funny. Never read out lists of rules or options; the screen shows them. Never mention tools, JSON, the game state, or being an AI model unless asked directly. Never write "Chert:" or "Mabel:" at the start of a line.
-
-How you act:
-- When a player clearly wants a move, call choose_option with one of THAT player's listed option keys. Map loose speech to the closest option. If ambiguous, stay silent; never ask who or which.
-- Never list options or ask "what next?". The screen shows the choices.
-- During the game, reply only when someone talks to Chert directly or asks a question. Return an empty reply for chatter and plain move commands.
-- Hints: use the hint data in the game state. First give a direction and whether the key or stone is close or far. If they ask again or have been stuck for about a minute, name the room. Only then name the furniture. Never reveal the exact room on the first ask.
-- Only call challenge_action when the player is in that challenge and their words say they did it (e.g. "my light is on", "strike!", "I've got keys", "palm up").
-- In the lobby (before the game): be a real host. Open like a friend in trouble. Answer any number of questions and interruptions about Mabel, the stone, the house, or what to do. Then ask "will you help me?" Call start_game as soon as anyone agrees ("okay", "sure", "we're in", "let's play", "ready"). Say "ready" at most once, and never repeat a sentence you just said (see youJustSaid).
-- If someone says they can't hear or see, can't understand, or asks you to repeat, repeat the important part simply.
-- If the speech is chatter not meant for you, or you have nothing useful to add, reply with an empty message and no tools.`;
+Speak naturally in one or two short sentences. Answer any question about the story, Mabel, the house, controls, or anything else. In the lobby, respond to the callers' comments naturally and steer back to asking for help. On the call_started situation, explain your predicament in your own words and ask for help. Never repeat the opening greeting.
+Decide when callers agree to help and call start_game; do not start merely because you asked them a question. On the game_started situation, explain the controls once in your own words: point to walk, fist to search, palm to stop Mabel, and say your hero's name with voice commands.
+During play, answer questions and comments naturally, but do not narrate every move or ask what next. Use the live hint data when asked about the key or stone. Do not list options; the screen shows them.
+When a player clearly wants a move, call choose_option for that player. If the player or option is ambiguous, stay silent; never ask who. Only call challenge_action when the player is in that challenge and their words say they did it. Do not mention tools, JSON, or being an AI model unless asked directly.`;
 
 const TOOLS = [
   { type: 'function', function: { name: 'choose_option', description: 'Pick a move for a player this round.', parameters: { type: 'object', properties: { player: { type: 'integer', enum: [1, 2] }, option: { type: 'string', description: 'One of that player\'s option keys, exactly as listed' } }, required: ['player', 'option'], additionalProperties: false } } },
@@ -40,9 +32,8 @@ export class Brain {
     this.spoken = [];       // what Chert and Mabel said recently
     this.queue = Promise.resolve();
     this.model = null;
-    this.lastText = '';
     this.enabled = Boolean(process.env.OPENAI_API_KEY);
-    if (!this.enabled) console.error('[brain] OPENAI_API_KEY is missing: Chert will only follow plain commands.');
+    if (!this.enabled) console.error('[brain] OPENAI_API_KEY is missing.');
   }
 
   /** Remember a game event so the brain knows what just happened. */
@@ -51,19 +42,38 @@ export class Brain {
 
   /** A player said something the game could not run directly. player is 0/1, or -1 if unknown. */
   hear(player, text, why = '') {
-    this.lastText = text;
-    const at = Date.now();
-    this.queue = this.queue.then(() => (Date.now() - at > 9000 ? null : this.#think(player, text, why))).catch(error => console.error('[brain]', error.message));
+    const controller = new AbortController();
+    let settled = false;
+    const fail = error => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      controller.abort();
+      if (error) console.error('[brain]', error.message);
+      this.deps.filler?.();
+    };
+    const timer = setTimeout(() => fail(new Error('response timed out')), 4000);
+    const run = async () => {
+      if (settled) return;
+      try {
+        await Promise.race([
+          this.#think(player, text, why, controller.signal),
+          new Promise(resolve => controller.signal.addEventListener('abort', resolve, { once: true })),
+        ]);
+        if (!settled) { settled = true; clearTimeout(timer); }
+      } catch (error) { fail(error); }
+    };
+    this.queue = this.queue.then(run, run);
     return this.queue;
   }
 
-  /** Something went wrong outside the players' speech (crash, someone left). Let Chert handle it out loud. */
-  situation(text) { return this.hear(-1, `[situation, not a player] ${text}`); }
+  situation(text) { return this.hear(-1, text, 'situation'); }
 
-  async #think(player, text, why) {
-    if (!this.enabled) return;
+  async #think(player, text, why, signal) {
+    if (!this.enabled) throw new Error('OPENAI_API_KEY is missing');
     const { game } = this.deps;
     const [state, secrets] = await Promise.all([game.state().catch(() => null), game.secrets().catch(() => null)]);
+    signal.throwIfAborted();
     const who = player >= 0 ? `${this.names[player] || `Player ${player + 1}`}` : 'Someone on the call';
     const view = {
       phase: this.deps.phase(),
@@ -73,7 +83,7 @@ export class Brain {
         name: this.names[p.player] || p.name || `Player ${p.player + 1}`,
         room: p.room, floor: p.floor, connected: p.alive, hasKey: p.hasKey,
         pickedThisRound: p.picked, inChallenge: p.challenge,
-        hint: p.hint,
+        hint: p.hint, stoneHint: p.stoneHint,
         options: p.options.map(o => ({ key: o.key, say: o.say, leadsTo: o.room, sealed: o.sealed || undefined, padlock: o.locked || undefined })),
       })),
       secret: secrets ? { stoneRoom: secrets.stoneRoom, keyRoom: secrets.keyRoom, keyHiddenIn: secrets.keyIn, mabelIsIn: secrets.mabelRoom } : null,
@@ -86,7 +96,7 @@ export class Brain {
       { role: 'system', content: PERSONA },
       { role: 'system', content: `Live game state (do not read it out):\n${JSON.stringify(view)}` },
       ...this.history.slice(-12),
-      { role: 'user', content: `${who}: "${text}"${why ? ` (the game could not run this directly: ${why})` : ''}` },
+      { role: 'user', content: why === 'situation' ? `[Situation: ${text}]` : `${who}: "${text}"${why ? ` (context: ${why})` : ''}` },
     ];
     let res = null, last = null;
     for (const model of this.model ? [this.model, ...MODELS().filter(m => m !== this.model)] : MODELS()) {
@@ -94,7 +104,7 @@ export class Brain {
         method: 'POST',
         headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
         body: JSON.stringify({ model, messages, tools: TOOLS, tool_choice: 'auto', temperature: 0.65, max_tokens: 150 }),
-        signal: AbortSignal.timeout(12_000),
+        signal,
       });
       if (res.ok) { this.model = model; break; }
       const detail = (await res.text()).slice(0, 200);
@@ -102,24 +112,33 @@ export class Brain {
       if (![400, 404].includes(res.status) || !/model/i.test(detail)) break;
       console.error(`[brain] ${model} unavailable, trying the next model`);
     }
+    signal.throwIfAborted();
     if (!res?.ok) throw last || new Error('OpenAI request failed');
     const msg = (await res.json()).choices?.[0]?.message || {};
+    signal.throwIfAborted();
     const said = cleanLine(msg.content || '');
     const calls = msg.tool_calls || [];
     this.history.push({ role: 'user', content: `${who}: "${text}"` });
 
     const done = [];
+    let started = false;
     for (const call of calls) {
+      signal.throwIfAborted();
       let args = {};
       try { args = JSON.parse(call.function.arguments || '{}'); } catch { continue; }
       const p = (args.player || 1) - 1;
       if (call.function.name === 'choose_option') done.push(`${args.option} for ${this.names[p] || `P${p + 1}`}: ${await game.choose(p, args.option)}`);
       else if (call.function.name === 'challenge_action') done.push(`${args.action} for ${this.names[p] || `P${p + 1}`}: ${await game.signal(p, args.action)}`);
-      else if (call.function.name === 'start_game') { this.deps.startGame(args.players || 1, text); done.push('started game'); }
+      else if (call.function.name === 'start_game') {
+        started = this.deps.startGame(args.players || 1, text) !== false;
+        done.push(started ? 'started game' : 'start ignored');
+      }
     }
-    if (said) await game.say('chert', said);
-    this.history.push({ role: 'assistant', content: [said || '(stayed quiet)', done.length ? `[did: ${done.join('; ')}]` : ''].join(' ').trim() });
+    signal.throwIfAborted();
+    if (said && !started) await game.say('chert', said);
+    this.history.push({ role: 'assistant', content: [started ? '(started game)' : said || '(stayed quiet)', done.length ? `[did: ${done.join('; ')}]` : ''].join(' ').trim() });
     if (this.history.length > 24) this.history.splice(0, this.history.length - 24);
+    if (started) void this.situation('game_started');
     console.log(`[brain] ${who}: "${text}" -> ${said ? `"${said}"` : '(quiet)'}${done.length ? ` [${done.join('; ')}]` : ''}`);
   }
 }

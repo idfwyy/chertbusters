@@ -24,17 +24,15 @@ const FORCED_PLAYERS = Number(process.env.PLAYERS || 0) || 0;
 const MOTION_LIMIT = +(process.env.FREEZE_MOTION || 9);
 const RAN = ['picked', 'passed', 'failed'];
 
-const AGREE = /\b(yes|yeah|yep|sure|okay|ok|we'?re in|i'?m in|let'?s (play|go)|play again|ready|we can help|sounds good)\b/;
-const ASK = /\b(chert|where|what|how|why|can you|do you|hint|help|stuck|which)\b/;
+const ASK = /\?|\b(chert|who|where|what|when|how|why|can you|do you|hint|help|stuck|which)\b/;
+const MOVE = /^(?:left|right|forward|straight|ahead|back|behind|around|up|down|upstairs|downstairs|stairs|staircase|climb|go|walk|move|head|turn|take|open|check|search|look|strike|palm|ward|push|stop|light|lights|lamp|key|keys|metal|coin|spoon|the|red|sealed|kitchen|dining|conservatory|library|hall|grand hall|parlor|study|foyer|switchboard|nursery|master|bathroom|guest|landing|gallery|music|sewing|servants)\b/;
 const NAME_RE = [/\b(batman|bruce|batty|bat)\b/, /\b(spider[- ]?man|peter|spidey|spider)\b/];
 
-const HELLO = 'Hello? Hello! It’s Chert!';
-const GREETING = 'Mabel stole my spark stone! Can you help? Point to walk, fist to search, palm if she reaches for you. Say your hero’s name with voice commands.';
-const TWO_PLAYERS = 'Two of you. Batman is on the left, Spider-Man on the right.';
-const REPROMPT = 'Are you still there? I really need your help.';
+const HELLO = 'Hello? Oh, you picked up!';
+const FILLER = 'Sorry, the line crackled, say that again?';
 
 const agent = defineAgent({
-  prewarm: async () => { await prewarm([['chert', HELLO], ['chert', GREETING]]); },
+  prewarm: async () => { await prewarm([['chert', HELLO], ['chert', FILLER]]); },
   entry: async ctx => {
     await ctx.connect(undefined, AutoSubscribe.SUBSCRIBE_ALL);
     // Start the page in parallel; audio and the greeting must not wait for Chromium.
@@ -48,7 +46,9 @@ const agent = defineAgent({
       for (const stop of stops) { try { await stop(); } catch { /* call over */ } }
       if (game) await game.close();
     });
-    let phase = 'lobby', players = 0, reprompt = null, lastHeard = 0, bridgeAt = 0;
+    let phase = 'lobby', players = 0, bridgeAt = 0, speechReady = false;
+    let mixed = MIXED_ENV, tileCount = 0;
+    const people = new Map(), slots = [], active = {};
     const recentSpeech = [];
     let speakingUntil = 0;
     const voice = new Voice({
@@ -68,32 +68,6 @@ const agent = defineAgent({
     const timer = setInterval(sendFrame, 1000 / FPS);
     const stats = setInterval(() => { if (!game) return; const g = game.stats(); console.log(`[video] ${g.received} pictures from the game, ${g.decoded} decoded, ${sent} sent in the last 10 s${g.received === 0 ? '  <- the game page stopped drawing' : ''}`); g.reset(); sent = 0; }, 10_000);
     stops.push(() => clearInterval(timer), () => clearInterval(stats));
-    const greeting = greetWithFallback(ctx.room, () => {
-      if (!bridgeAt) bridgeAt = Date.now();
-      recentSpeech.push(HELLO, GREETING);
-      void audioReady.then(() => { if (!closed) { voice.say('chert', HELLO); voice.say('chert', GREETING); } })
-        .catch(error => console.error('[chertbusters] greeting failed:', error.message));
-      reprompt = setTimeout(() => { if (!closed && phase === 'lobby' && Date.now() - lastHeard > 22_000) { if (game) void game.say('chert', REPROMPT); else voice.say('chert', REPROMPT); } }, 28_000);
-    }, () => { console.log('[chertbusters] bridge_ready'); if (!bridgeAt) bridgeAt = Date.now(); });
-    stops.push(() => greeting.stop(), () => clearTimeout(reprompt));
-    await ctx.waitForParticipant();
-    console.log('[chertbusters] caller joined');
-    if (!bridgeAt) bridgeAt = Date.now();
-    greeting.callerJoined();
-    if (!(await gameReady) || closed) return;
-    void game.scriptLines().then(lines => prewarm([...lines, ['chert', REPROMPT], ['chert', TWO_PLAYERS]]));
-
-    // ---- who is who ----
-    let mixed = MIXED_ENV, tileCount = 0;
-    const people = new Map();         // identity -> { stopAudio, stopVideo }
-    const slots = [];                 // non-bridge calls: slots[0] = player 1
-    const active = {};                // player -> current challenge { kind, since, base }
-    const isHuman = p => p.kind !== ParticipantKind.AGENT && p.identity !== ctx.room.localParticipant.identity;
-    const slotOf = identity => {
-      let s = slots.indexOf(identity);
-      if (s < 0 && slots.length < 2) { slots.push(identity); s = slots.length - 1; console.log(`[chertbusters] ${identity} is ${NAMES[s]}`); }
-      return s;
-    };
     const voices = () => [...people.values()].filter(p => p.stopAudio).length;
     const playerCount = () => Math.max(1, Math.min(2, FORCED_PLAYERS || tileCount || voices() || 1));
     const normalize = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -107,10 +81,50 @@ const agent = defineAgent({
       for (const w of aw) if (bw.has(w)) same++;
       return same / Math.max(1, Math.min(aw.size, bw.size)) > 0.8;
     };
-    const isEcho = text => {
-      if (Date.now() < speakingUntil) return true;
-      const n = normalize(text);
-      return !n || recentSpeech.some(line => similar(n, normalize(line)));
+    const isRecentEcho = text => { const n = normalize(text); return !n || recentSpeech.some(line => similar(n, normalize(line))); };
+    const isEcho = text => Date.now() < speakingUntil || isRecentEcho(text);
+    const speakDirect = (who, text) => {
+      if (closed) return;
+      recentSpeech.push(text); if (recentSpeech.length > 6) recentSpeech.shift();
+      brain.heardChert(who, text);
+      voice.say(who, text);
+    };
+    const brainGame = {
+      state: async () => game ? game.state() : null,
+      secrets: async () => game ? game.secrets() : null,
+      choose: async (p, option) => game ? game.choose(p, option) : 'ignored',
+      signal: async (p, kind) => game ? game.signal(p, kind) : 'ignored',
+      say: async (who, text) => { if (game && speechReady) return game.say(who, text); speakDirect(who, text); },
+    };
+    function startGame(asked = 1, sourceText = '') {
+      if (phase === 'playing' || (sourceText && isRecentEcho(sourceText))) return false;
+      const n = Math.max(1, Math.min(2, FORCED_PLAYERS || tileCount || voices() || asked || 1));
+      const left = Math.max(1000, 300_000 - (bridgeAt ? Date.now() - bridgeAt : 0) - 15_000);
+      players = n; phase = 'playing';
+      for (const k of Object.keys(active)) delete active[k];
+      brain.note(`Game started with ${players} player(s): ${NAMES.slice(0, players).join(' and ')}.`);
+      console.log(`[chertbusters] starting with ${players} player${players > 1 ? 's' : ''} (${NAMES.slice(0, players).join(', ')}), ${Math.round(left / 1000)} s left on the call`);
+      void gameReady.then(page => { if (page && !closed) void page.start(players, { timeLeftMs: left, skipIntro: true }); });
+      return true;
+    }
+    const brain = new Brain({ game: brainGame, startGame, playersNow: () => players || playerCount(), phase: () => phase, names: NAMES, tiles: () => tileCount, filler: () => speakDirect('chert', FILLER) });
+    const greeting = greetWithFallback(ctx.room, () => {
+      if (!bridgeAt) bridgeAt = Date.now();
+      void audioReady.then(() => { if (!closed) { speakDirect('chert', HELLO); void brain.situation('call_started'); } })
+        .catch(error => console.error('[chertbusters] greeting failed:', error.message));
+    }, () => { console.log('[chertbusters] bridge_ready'); if (!bridgeAt) bridgeAt = Date.now(); });
+    stops.push(() => greeting.stop());
+    await ctx.waitForParticipant();
+    console.log('[chertbusters] caller joined');
+    if (!bridgeAt) bridgeAt = Date.now();
+    greeting.callerJoined();
+
+    // ---- who is who ----
+    const isHuman = p => p.kind !== ParticipantKind.AGENT && p.identity !== ctx.room.localParticipant.identity;
+    const slotOf = identity => {
+      let s = slots.indexOf(identity);
+      if (s < 0 && slots.length < 2) { slots.push(identity); s = slots.length - 1; console.log(`[chertbusters] ${identity} is ${NAMES[s]}`); }
+      return s;
     };
 
     // ---- per-tile video ----
@@ -128,24 +142,6 @@ const agent = defineAgent({
     const slotForTile = (_tileId, index) => index;
     const playerForTile = (_tileId, index) => index;
 
-    function startGame(asked = 1, sourceText = '') {
-      if (phase === 'playing') return;
-      if (sourceText && !AGREE.test(sourceText.toLowerCase())) { console.log(`[chertbusters] not starting: no agreement in "${sourceText}"`); return; }
-      const n = Math.max(1, Math.min(2, FORCED_PLAYERS || tileCount || asked || 1));
-      // Chert cuts calls at 5 minutes. Leave 15 s for the intro and the goodbyes.
-      const left = 300_000 - (bridgeAt ? Date.now() - bridgeAt : 0) - 15_000;
-      if (left < 45_000) { void game.say('chert', 'We’re nearly out of time on this call. Hang up and call me right back — I’ll be here.'); return; }
-      clearTimeout(reprompt);
-      players = n;
-      phase = 'playing';
-      for (const k of Object.keys(active)) delete active[k];
-      brain.note(`Game started with ${players} player(s): ${NAMES.slice(0, players).join(' and ')}.`);
-      console.log(`[chertbusters] starting with ${players} player${players > 1 ? 's' : ''} (${NAMES.slice(0, players).join(', ')}), ${Math.round(left / 1000)} s left on the call`);
-      if (players === 2) void game.say('chert', TWO_PLAYERS);
-      void game.start(players, { timeLeftMs: left });
-    }
-
-    const brain = new Brain({ game, startGame, playersNow: () => players || playerCount(), phase: () => phase, names: NAMES, tiles: () => tileCount });
 
     async function attribute(text) {
       for (const [i, re] of NAME_RE.entries()) if (re.test(text.toLowerCase())) return i;
@@ -158,32 +154,23 @@ const agent = defineAgent({
       if (!text) return;
       const t = text.toLowerCase();
       if (isEcho(text)) { console.log(`[heard] ${identity}: (ignored echo) ${text}`); return; }
-      lastHeard = Date.now();
       const player = mixed ? await attribute(text) : slotOf(identity);
       if (phase !== 'playing') {
-        // The brain runs the lobby. Without a brain key, an agreement still starts the game.
-        if (AGREE.test(t)) { startGame(playerCount(), text); return; }
-        if (!brain.enabled) return;
         void brain.hear(player, text, 'lobby');
         return;
       }
-      // A direct "where is the key/stone?" gets a deterministic hint from the page, so the
-      // close/far → room → furniture progression is guaranteed rather than left to the model.
-      if (player >= 0 && /\b(where|hint|stuck|help me find)\b/.test(t) && /\b(key|stone|door|room)\b/.test(t)) {
-        const item = /\b(stone|door)\b/.test(t) ? 'stone' : 'key';
-        const h = await game.hint(player, item);
-        if (h?.text) { void game.say('chert', h.text); brain.note(`Hint for ${NAMES[player]}: ${h.text}`); return; }
-      }
       // Questions and Chert's name go to the brain before the command parser. "Batman, left" still runs instantly.
       if (ASK.test(t)) { void brain.hear(player, text, 'question'); return; }
+      const commandText = player >= 0 ? t.replace(NAME_RE[player], '').replace(/^[\s,.:;!-]+/, '').trim() : t;
+      if (!MOVE.test(commandText)) { void brain.hear(player, text, 'comment'); return; }
+      if (!game && !(await gameReady)) return;
       let result = 'no player';
       if (player >= 0 && player < players) {
         void game.heard(player, text);
-        result = await game.command(player, t.replace(NAME_RE[player], '').trim());
+        result = await game.command(player, commandText);
         if (RAN.includes(result)) { brain.note(`${NAMES[player]} said "${text}" -> ${result}`); return; }
       } else if (players > 1) {
-        void game.prompt('Say BATMAN or SPIDER-MAN first');
-        return;
+        void game.prompt('Say BATMAN or SPIDER-MAN first'); return;
       }
       // Not a plain command: let Chert's brain work out what they meant, or answer them.
       void brain.hear(player, text, result);
@@ -224,7 +211,7 @@ const agent = defineAgent({
           person.stopVideo = watchVideo(track, {
             label: id,
             onTiles,
-            onTile: (tileId, jpg, index) => { const p = slotForTile(tileId, index); if (p >= 0) void game.cam(p, jpg); },
+            onTile: (tileId, jpg, index) => { const p = slotForTile(tileId, index); if (p >= 0 && game) void game.cam(p, jpg); },
             onSample: (tileId, s, index) => onSample(playerForTile(tileId, index), s),
             onSnapshot: saveSnapshot,
           });
@@ -232,7 +219,7 @@ const agent = defineAgent({
           const p = slotOf(id);
           if (p >= 0) person.stopVideo = watchVideo(track, {
             label: id,
-            onFrame: jpg => void game.cam(p, jpg),
+            onFrame: jpg => { if (game) void game.cam(p, jpg); },
             onSample: s => onSample(p, s),
             onSnapshot: saveSnapshot,
           });
@@ -250,6 +237,8 @@ const agent = defineAgent({
       if (s >= 0 && phase === 'playing' && people.size > 0) void brain.situation(`${NAMES[s]} just dropped off the FaceTime call. The others are still here.`);
     });
     stops.push(() => { for (const person of people.values()) { person.stopAudio?.(); person.stopVideo?.(); } });
+    if (!(await gameReady) || closed) return;
+    void game.scriptLines().then(lines => prewarm(lines));
 
     // ---- the game talks, Chert speaks; the brain keeps track ----
     game.events.on('event', event => {
@@ -263,7 +252,7 @@ const agent = defineAgent({
       }
       else if (event.type === 'challenge_start') { active[event.player] = { kind: event.challenge, since: Date.now(), base: null }; brain.note(`${NAMES[event.player] || 'P' + (event.player + 1)} challenge: ${event.challenge}`); }
       else if (event.type === 'challenge_end') { delete active[event.player]; brain.note(`${NAMES[event.player] || 'P' + (event.player + 1)} ${event.passed ? 'passed' : 'failed'} ${event.challenge}`); }
-      else if (event.type === 'gesture' && event.action === 'ready' && phase === 'lobby') { startGame(playerCount(), 'ready'); }
+      else if (event.type === 'gesture' && event.action === 'ready' && phase === 'lobby') { void brain.situation('A caller gave a thumbs-up to start.'); }
       else if (event.type === 'scream') { voice.say('mabel', 'Aah!', { urgent:true }); brain.note(`Mabel caught ${NAMES[event.player] || 'a player'}.`); }
       else if (event.type === 'entered') brain.note(`${NAMES[event.player] || 'P' + (event.player + 1)} entered the ${event.room}`);
       else if (event.type === 'search') brain.note(`${NAMES[event.player] || 'P' + (event.player + 1)} searched the ${event.spot}: ${event.found || 'nothing'}`);
@@ -271,6 +260,7 @@ const agent = defineAgent({
       else if (['encounter', 'caught', 'sealed_room_found', 'unsealed', 'scare', 'win', 'glimpse'].includes(event.type)) brain.note(`${event.type}${event.player != null ? ` (${NAMES[event.player] || 'P' + (event.player + 1)})` : ''}`);
       else if (event.type === 'game_over') { phase = 'over'; brain.note(`Game over. Winner: ${event.winner == null ? 'nobody' : NAMES[event.winner]}. Stone was in the ${event.stone}.`); console.log('[chertbusters] game over', JSON.stringify(event)); }
     });
+    speechReady = true;
 
     // ---- if the game page crashes, Chert covers for it and reloads ----
     game.events.on('crash', async () => {

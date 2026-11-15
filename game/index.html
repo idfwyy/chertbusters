@@ -452,7 +452,7 @@ async function start(n, opts = {}){
   menuEl.hidden = true; endEl.hidden = true; chert.mood = 'weak'; chert.hijack = 0; chert.restored = 0; hostBanner(null);
   renderTop(); emit('start', { players:n });
   try {
-    if (!params.has('skipintro')){
+    if (!opts.skipIntro && !params.has('skipintro')){
       if (CALL){
         showHostFull(true);
         await say('chert', 'Mabel, the old operator ghost, stole my spark stone and sealed it in a room upstairs. I can barely keep this call alive.'); alive(t);

@@ -47,20 +47,21 @@ async function speakLoop() {
   playing = false;
 }
 
-function startGame(n = 2) { if (phase === 'playing') return; players = n; phase = 'playing'; brain.note(`Game started with ${n} player(s).`); void game.start(n); }
-const brain = new Brain({ game, startGame, playersNow: () => players, phase: () => phase });
+function startGame(n = 2) { if (phase === 'playing') return false; players = n; phase = 'playing'; brain.note(`Game started with ${n} player(s).`); void game.start(n, { skipIntro: true }); return true; }
+const brain = new Brain({ game, startGame, playersNow: () => players, phase: () => phase, filler: () => void game.say('chert', 'Sorry, the line crackled, say that again?') });
 
 game.events.on('event', event => {
   if (event.type === 'say') { console.log(`  ${event.who === 'mabel' ? 'MABEL' : 'CHERT'}: ${event.text}`); lines.push(event); brain.heardChert(event.who, event.text); void speakLoop(); }
   else if (event.type === 'entered') brain.note(`P${event.player + 1} entered the ${event.room}`);
   else if (event.type === 'search') brain.note(`P${event.player + 1} searched the ${event.spot}: ${event.found || 'nothing'}`);
-  else if (event.type === 'gesture' && event.action === 'ready' && phase === 'lobby') startGame(1);
+  else if (event.type === 'gesture' && event.action === 'ready' && phase === 'lobby') void brain.situation('A caller gave a thumbs-up to start.');
   else if (event.type === 'game_over') { phase = 'over'; brain.note('Game over.'); }
   if (['clue', 'search', 'encounter', 'caught', 'win', 'game_over', 'challenge_start'].includes(event.type)) console.log('  [game]', JSON.stringify(event));
 });
 
-await game.say('chert', 'Oh thank goodness, you picked up! It’s me, Chert. I’m in trouble — Mabel stole my spark stone. Can you help me?');
-console.log('\nType as a player:  1 solo (start one player)   1 ready (start two)   1 left   1 !motion   quit\n');
+await game.say('chert', 'Hello? Oh, you picked up!');
+void brain.situation('call_started');
+console.log('\nType as a player:  1 <what player 1 says>   2 <what player 2 says>   1 !motion   quit\n');
 
 const rl = createInterface({ input: process.stdin });
 for await (const raw of rl) {
@@ -72,10 +73,9 @@ for await (const raw of rl) {
   const player = +m[1] - 1, text = m[2];
   if (text.startsWith('!')) { console.log('  ->', await game.signal(player, text.slice(1))); continue; }
   if (phase !== 'playing') {
-    if (/\bsolo\b/i.test(text)) { startGame(1); continue; }
-    if (/\b(ready|start|play again|yes|yeah|sure|okay)\b/i.test(text)) { startGame(2); continue; }
     await brain.hear(player, text, 'lobby'); continue;
   }
+  if (/\?|\b(chert|who|where|what|when|how|why|can you|do you|hint|help|stuck|which)\b/i.test(text)) { await brain.hear(player, text, 'question'); continue; }
   const result = await game.command(player, text.toLowerCase());
   if (['picked', 'passed', 'failed'].includes(result)) { console.log(`  -> ${result}`); brain.note(`P${player + 1} said "${text}" -> ${result}`); continue; }
   await brain.hear(player, text, result);

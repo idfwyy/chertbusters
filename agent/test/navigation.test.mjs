@@ -5,9 +5,13 @@ import { openGame } from '../game.mjs';
 // Exercise the page's public command API against the real Landing layout.
 test('Landing commands target the sealed door without taking the wrong stairs', { timeout: 60000 }, async () => {
   process.env.GAME_SOFTWARE_GL = '1';
-  const game = await openGame({ dir: new URL('../../game/', import.meta.url).pathname, query: '&skipintro=1&debug=1&seed=7&speed=8&time=1800' });
+  const game = await openGame({ dir: new URL('../../game/', import.meta.url).pathname, query: '&debug=1&seed=7&speed=8&time=1800' });
   try {
-    await game.start(1);
+    const spoken = [];
+    game.events.on('event', event => { if (event.type === 'say') spoken.push(event); });
+    await game.start(1, { skipIntro: true });
+    await game.evaluate(() => new Promise(resolve => setTimeout(resolve, 1000)));
+    assert.deepEqual(spoken, [], 'brain-driven start must not replay the scripted introduction');
     const result = await game.evaluate(async () => {
       const debug = window.deadLine.debug();
       debug.travelTo(0, 'landing');
